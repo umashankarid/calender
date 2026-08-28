@@ -1,0 +1,6 @@
+[run]
+source = app
+concurrency = greenlet
+
+[report]
+show_missing = true

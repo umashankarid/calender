@@ -1,0 +1,19 @@
+import { render, type RenderOptions } from '@testing-library/react';
+import type { ReactElement, ReactNode } from 'react';
+import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider } from '../hooks/useAuth';
+
+function AllProviders({ children }: { children: ReactNode }) {
+  return (
+    <BrowserRouter>
+      <AuthProvider>{children}</AuthProvider>
+    </BrowserRouter>
+  );
+}
+
+function customRender(ui: ReactElement, options?: Omit<RenderOptions, 'wrapper'>) {
+  return render(ui, { wrapper: AllProviders, ...options });
+}
+
+export { customRender as render };
+export * from '@testing-library/react';

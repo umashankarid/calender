@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#3B82F6"/>
+
+  <!-- Calendar body -->
+  <rect x="136" y="160" width="240" height="220" rx="20" ry="20" fill="#ffffff"/>
+
+  <!-- Calendar header bar -->
+  <rect x="136" y="160" width="240" height="60" rx="20" ry="0" fill="#1E40AF"/>
+  <rect x="136" y="200" width="240" height="20" fill="#1E40AF"/>
+
+  <!-- Calendar rings -->
+  <rect x="196" y="140" width="16" height="44" rx="8" fill="#ffffff"/>
+  <rect x="300" y="140" width="16" height="44" rx="8" fill="#ffffff"/>
+
+  <!-- Grid lines (horizontal) -->
+  <line x1="156" y1="280" x2="356" y2="280" stroke="#E5E7EB" stroke-width="2"/>
+  <line x1="156" y1="320" x2="356" y2="320" stroke="#E5E7EB" stroke-width="2"/>
+
+  <!-- Grid lines (vertical) -->
+  <line x1="216" y1="240" x2="216" y2="360" stroke="#E5E7EB" stroke-width="2"/>
+  <line x1="276" y1="240" x2="276" y2="360" stroke="#E5E7EB" stroke-width="2"/>
+  <line x1="336" y1="240" x2="336" y2="360" stroke="#E5E7EB" stroke-width="2"/>
+
+  <!-- "CH" text -->
+  <text x="256" y="330" font-family="system-ui, -apple-system, sans-serif" font-size="64" font-weight="700" fill="#3B82F6" text-anchor="middle" dominant-baseline="middle">CH</text>
+</svg>
