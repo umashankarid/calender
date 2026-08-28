@@ -118,7 +118,7 @@ async def create_announcement(
     return announcement
 
 
-@router.put("/{announcement_id}", response_model=AnnouncementResponse)
+@router.put("/{announcement_id}/", response_model=AnnouncementResponse)
 async def update_announcement(
     slug: str,
     announcement_id: uuid.UUID,
@@ -150,7 +150,7 @@ async def update_announcement(
     return announcement
 
 
-@router.delete("/{announcement_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{announcement_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_announcement(
     slug: str,
     announcement_id: uuid.UUID,

@@ -149,7 +149,7 @@ async def invite_member(
     return result.scalar_one()
 
 
-@router.put("/{member_id}", response_model=WorkspaceUserResponse)
+@router.put("/{member_id}/", response_model=WorkspaceUserResponse)
 async def update_member(
     slug: str,
     member_id: uuid.UUID,
@@ -189,7 +189,7 @@ async def update_member(
     return result.scalar_one()
 
 
-@router.delete("/{member_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{member_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_member(
     slug: str,
     member_id: uuid.UUID,

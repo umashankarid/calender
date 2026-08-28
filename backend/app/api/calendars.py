@@ -106,7 +106,7 @@ async def create_calendar(
     return calendar
 
 
-@router.put("/{calendar_id}", response_model=CalendarResponse)
+@router.put("/{calendar_id}/", response_model=CalendarResponse)
 async def update_calendar(
     slug: str,
     calendar_id: uuid.UUID,
@@ -138,7 +138,7 @@ async def update_calendar(
     return calendar
 
 
-@router.delete("/{calendar_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{calendar_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_calendar(
     slug: str,
     calendar_id: uuid.UUID,

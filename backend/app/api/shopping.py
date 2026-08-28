@@ -114,7 +114,7 @@ async def add_shopping_item(
     return item
 
 
-@router.put("/{item_id}", response_model=ShoppingItemResponse)
+@router.put("/{item_id}/", response_model=ShoppingItemResponse)
 async def update_shopping_item(
     slug: str,
     item_id: uuid.UUID,
@@ -145,7 +145,7 @@ async def update_shopping_item(
     return item
 
 
-@router.put("/{item_id}/toggle", response_model=ShoppingItemResponse)
+@router.put("/{item_id}/toggle/", response_model=ShoppingItemResponse)
 async def toggle_shopping_item(
     slug: str,
     item_id: uuid.UUID,
@@ -191,7 +191,7 @@ async def delete_bought_items(
     await db.flush()
 
 
-@router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{item_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_shopping_item(
     slug: str,
     item_id: uuid.UUID,

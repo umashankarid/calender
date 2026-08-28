@@ -122,7 +122,7 @@ async def list_workspaces(
     return result.scalars().all()
 
 
-@router.get("/{slug}", response_model=WorkspaceResponse)
+@router.get("/{slug}/", response_model=WorkspaceResponse)
 async def get_workspace_by_slug(
     slug: str,
     payload: dict = Depends(require_auth),
@@ -135,7 +135,7 @@ async def get_workspace_by_slug(
     return workspace
 
 
-@router.put("/{slug}", response_model=WorkspaceResponse)
+@router.put("/{slug}/", response_model=WorkspaceResponse)
 async def update_workspace(
     slug: str,
     data: WorkspaceUpdate,

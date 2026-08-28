@@ -120,7 +120,7 @@ async def create_reminder(
     return reminder
 
 
-@router.put("/{reminder_id}", response_model=ReminderResponse)
+@router.put("/{reminder_id}/", response_model=ReminderResponse)
 async def update_reminder(
     slug: str,
     reminder_id: uuid.UUID,
@@ -150,7 +150,7 @@ async def update_reminder(
     return reminder
 
 
-@router.delete("/{reminder_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{reminder_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_reminder(
     slug: str,
     reminder_id: uuid.UUID,

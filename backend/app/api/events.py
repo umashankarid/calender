@@ -167,7 +167,7 @@ async def list_events(
     return [_build_event_with_members(e) for e in events]
 
 
-@router.get("/{event_id}", response_model=EventWithMembers)
+@router.get("/{event_id}/", response_model=EventWithMembers)
 async def get_event(
     slug: str,
     event_id: uuid.UUID,
@@ -225,7 +225,7 @@ async def create_event(
     return _build_event_with_members(loaded)
 
 
-@router.put("/{event_id}", response_model=EventWithMembers)
+@router.put("/{event_id}/", response_model=EventWithMembers)
 async def update_event(
     slug: str,
     event_id: uuid.UUID,
@@ -259,7 +259,7 @@ async def update_event(
     return _build_event_with_members(loaded)
 
 
-@router.delete("/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{event_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_event(
     slug: str,
     event_id: uuid.UUID,

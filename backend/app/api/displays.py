@@ -170,7 +170,7 @@ async def pair_display(
     return {"display_id": str(display.id), "token": display.token, "name": display.name}
 
 
-@router.get("/by-token/{token}/today")
+@router.get("/by-token/{token}/today/")
 async def get_today_by_token(
     slug: str,
     token: str,
@@ -371,7 +371,7 @@ async def get_today_by_token(
     }
 
 
-@router.get("/{display_id}", response_model=DisplayResponse)
+@router.get("/{display_id}/", response_model=DisplayResponse)
 async def get_display(
     slug: str,
     display_id: uuid.UUID,
@@ -394,7 +394,7 @@ async def get_display(
     return display
 
 
-@router.put("/{display_id}", response_model=DisplayResponse)
+@router.put("/{display_id}/", response_model=DisplayResponse)
 async def update_display(
     slug: str,
     display_id: uuid.UUID,
@@ -425,7 +425,7 @@ async def update_display(
     return display
 
 
-@router.put("/{display_id}/widgets", response_model=list[DisplayWidgetResponse])
+@router.put("/{display_id}/widgets/", response_model=list[DisplayWidgetResponse])
 async def bulk_update_widgets(
     slug: str,
     display_id: uuid.UUID,
@@ -475,7 +475,7 @@ async def bulk_update_widgets(
     return new_widgets
 
 
-@router.get("/{display_id}/feed")
+@router.get("/{display_id}/feed/")
 async def display_feed(
     slug: str,
     display_id: uuid.UUID,
