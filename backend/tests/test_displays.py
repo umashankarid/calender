@@ -88,7 +88,7 @@ async def test_pair_display(client, create_test_user, create_test_workspace):
     # Pair (no auth needed — the code IS the auth)
     pair_resp = await client.post(
         displays_url(workspace.slug, "/pair"),
-        params={"pairing_code": pairing_code},
+        json={"pairing_code": pairing_code},
     )
     assert pair_resp.status_code == 200
     pair_body = pair_resp.json()
@@ -104,7 +104,7 @@ async def test_pair_display_invalid_code(client, create_test_user, create_test_w
 
     resp = await client.post(
         displays_url(workspace.slug, "/pair"),
-        params={"pairing_code": "000000"},
+        json={"pairing_code": "000000"},
     )
     assert resp.status_code == 404
     assert "Invalid pairing code" in resp.json()["detail"]
@@ -141,7 +141,7 @@ async def test_pair_display_expired_code(
     # Attempt pairing with expired code
     pair_resp = await client.post(
         displays_url(workspace.slug, "/pair"),
-        params={"pairing_code": pairing_code},
+        json={"pairing_code": pairing_code},
     )
     assert pair_resp.status_code == 410
     assert "expired" in pair_resp.json()["detail"].lower()
@@ -185,11 +185,8 @@ async def test_get_display_feed_by_token(
     assert feed["date"] == today_start.date().isoformat()
     assert "workspace" in feed
 
-    # The event should appear in events_by_member (unassigned since no members)
-    all_events = []
-    for member_events in feed["events_by_member"].values():
-        all_events.extend(member_events)
-    assert any(e["title"] == "Team Meeting" for e in all_events)
+    # The event should appear in today array
+    assert any(e["title"] == "Team Meeting" for e in feed["today"])
 
 
 async def test_display_feed_includes_announcements(

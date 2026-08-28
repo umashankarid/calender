@@ -5,10 +5,11 @@ import { apiGet, apiPost } from './client';
  * Fetch the display feed using a display token (no JWT required).
  */
 export async function getDisplayFeed(
+  slug: string,
   token_string: string,
 ): Promise<DisplayFeed> {
   return apiGet<DisplayFeed>(
-    `/api/displays/by-token/${token_string}/today`,
+    `/api/workspaces/${slug}/displays/by-token/${token_string}/today`,
   );
 }
 

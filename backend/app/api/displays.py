@@ -11,6 +11,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -128,10 +129,14 @@ async def create_display(
     return display
 
 
+class PairRequest(BaseModel):
+    pairing_code: str
+
+
 @router.post("/pair")
 async def pair_display(
     slug: str,
-    pairing_code: str = Query(..., description="6-digit pairing code"),
+    data: PairRequest,
     db: AsyncSession = Depends(get_db),
 ):
     """Pair a display using its pairing code. Called from the display device.
@@ -141,7 +146,7 @@ async def pair_display(
     result = await db.execute(
         select(Display).where(
             Display.workspace_id == workspace.id,
-            Display.pairing_code == pairing_code,
+            Display.pairing_code == data.pairing_code,
         )
     )
     display = result.scalar_one_or_none()
@@ -302,8 +307,41 @@ async def get_today_by_token(
             "primary_color": workspace.primary_color,
             "timezone": workspace.timezone,
         },
-        "events_by_member": events_by_member,
-        "upcoming_events": upcoming_events,
+        "workspace_name": workspace.name,
+        "display_id": str(display.id),
+        "today": [
+            {
+                "id": str(e.id),
+                "workspace_id": str(e.workspace_id),
+                "calendar_id": str(e.calendar_id) if e.calendar_id else None,
+                "title": e.title,
+                "start": e.start.isoformat(),
+                "end": e.end.isoformat() if e.end else None,
+                "all_day": e.all_day,
+                "location": e.location,
+                "notes": e.notes,
+                "recurrence": e.recurrence,
+                "source": e.source,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+                "updated_at": e.updated_at.isoformat() if e.updated_at else None,
+                "members": [
+                    {
+                        "id": str(link.workspace_user.id),
+                        "workspace_id": str(link.workspace_user.workspace_id),
+                        "user_id": str(link.workspace_user.user_id),
+                        "role": link.workspace_user.role,
+                        "display_name": link.workspace_user.display_name
+                            or (link.workspace_user.user.name if link.workspace_user.user else None),
+                        "display_color": link.workspace_user.display_color,
+                        "created_at": link.workspace_user.created_at.isoformat()
+                            if link.workspace_user.created_at else None,
+                    }
+                    for link in e.member_links
+                ],
+            }
+            for e in todays_events
+        ],
+        "upcoming": upcoming_events,
         "announcements": announcements,
         "reminders": reminders,
     }

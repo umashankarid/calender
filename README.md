@@ -153,3 +153,94 @@ docker compose exec db psql -U calendarhub  # Connect to database
 ## License
 
 TBD
+
+
+## Deploying on Coolify
+
+### Prerequisites
+
+- Coolify installed on your VPS (HostUp or similar)
+- A domain pointed to your VPS (e.g. `yourdomain.se`)
+- The repo pushed to GitHub: `https://github.com/umashankarid/calender.git`
+
+### Step 1 — Create Project
+
+1. Coolify dashboard → **Projects** → **+ Add**
+2. Name: `Calendar Hub`
+
+### Step 2 — Add Docker Compose Resource
+
+1. Inside the project → **+ New Resource**
+2. Type: **Docker Compose**
+3. Source: **GitHub (Public)**
+4. Repository: `https://github.com/umashankarid/calender.git`
+5. Branch: `main`
+
+### Step 3 — Set Environment Variables
+
+Add these in the resource's **Environment Variables** tab:
+
+```
+POSTGRES_USER=calendarhub
+POSTGRES_PASSWORD=<strong-random-password>
+POSTGRES_DB=calendarhub
+SECRET_KEY=<run: python3 -c "import secrets; print(secrets.token_hex(32))">
+CORS_ORIGINS=https://calendar.yourdomain.se
+VITE_API_URL=https://calendar-api.yourdomain.se
+API_PORT=8000
+FRONTEND_PORT=3000
+```
+
+### Step 4 — Configure Domains
+
+In each service's settings:
+
+| Service | Domain | Port |
+|---------|--------|------|
+| **frontend** | `calendar.yourdomain.se` | 3000 |
+| **backend** | `calendar-api.yourdomain.se` | 8000 |
+| **db** | *(none — internal only)* | — |
+
+Coolify handles HTTPS via Let's Encrypt automatically.
+
+### Step 5 — Deploy
+
+Click **Deploy**. Coolify will:
+1. Clone the repo
+2. Build backend and frontend Docker images
+3. Start PostgreSQL → wait for health check → start backend → start frontend
+
+### Step 6 — First Use
+
+1. Open `https://calendar.yourdomain.se`
+2. Register your account
+3. Create a workspace (e.g. "My Home", slug: `home`)
+4. Go to `https://calendar.yourdomain.se/home/admin` → Displays → Register a display
+5. On your tablet, open `https://calendar.yourdomain.se/home/display` and enter the pairing code
+
+### Important Notes
+
+- **VITE_API_URL** must be the **public** backend URL (with `https://`). It's baked into the frontend JS at build time.
+- **CORS_ORIGINS** must include the frontend's public URL.
+- The `pgdata` Docker volume persists database data across redeployments.
+- To redeploy after code changes: push to GitHub, then click **Redeploy** in Coolify.
+
+### DNS Setup
+
+Create two A records pointing to your VPS IP:
+
+```
+calendar.yourdomain.se     → <VPS-IP>
+calendar-api.yourdomain.se → <VPS-IP>
+```
+
+### Single Domain Alternative
+
+If you prefer one domain, you can put both behind a reverse proxy:
+
+```
+calendar.yourdomain.se        → frontend (port 3000)
+calendar.yourdomain.se/api/*  → backend (port 8000)
+```
+
+In that case, set `VITE_API_URL=https://calendar.yourdomain.se` and update the backend to serve under `/api`.

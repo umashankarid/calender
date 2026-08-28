@@ -49,7 +49,7 @@ export default function DisplayPage() {
       return;
     }
     try {
-      const data = (await getDisplayFeed(displayToken)) as FeedWithMeta;
+      const data = (await getDisplayFeed(slug!, displayToken)) as FeedWithMeta;
       setFeed(data);
       setError(null);
     } catch (err: unknown) {
