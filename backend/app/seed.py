@@ -1,4 +1,8 @@
-"""Seed script — creates a default admin user and workspace if the database is empty.
+"""Seed script — ensures the admin user and default workspace exist on every startup.
+
+- If no users exist: creates admin + workspace + calendar from env vars.
+- If admin exists: updates email, name, and password from env vars.
+- If workspace exists: ensures admin is the owner.
 
 Run automatically on startup or manually:
     python -m app.seed
@@ -28,61 +32,110 @@ DEFAULT_WORKSPACE_SLUG = os.environ.get("DEFAULT_WORKSPACE_SLUG", "home")
 
 
 async def seed():
-    """Create default admin + workspace if no users exist yet."""
+    """Ensure admin user and default workspace exist, sync credentials from env."""
     async with async_session() as db:
-        # Check if any users exist
-        result = await db.execute(select(User).limit(1))
-        if result.scalar_one_or_none() is not None:
-            print("[seed] Users already exist — skipping seed.")
-            return
 
-        print(f"[seed] Creating default admin: {ADMIN_EMAIL}")
+        # ── Find or create admin user ────────────────────────────────────
+        result = await db.execute(select(User).where(User.email == ADMIN_EMAIL))
+        user = result.scalar_one_or_none()
 
-        # Create admin user
-        user = User(
-            id=uuid.uuid4(),
-            email=ADMIN_EMAIL,
-            name=ADMIN_NAME,
-            password_hash=hash_password(ADMIN_PASSWORD),
+        if user is None:
+            # Maybe the email changed — check if there's a user that was
+            # previously the admin (first user created by seed)
+            result = await db.execute(select(User).order_by(User.created_at).limit(1))
+            first_user = result.scalar_one_or_none()
+
+            if first_user is None:
+                # Fresh database — create everything
+                print(f"[seed] Creating admin: {ADMIN_EMAIL}")
+                user = User(
+                    id=uuid.uuid4(),
+                    email=ADMIN_EMAIL,
+                    name=ADMIN_NAME,
+                    password_hash=hash_password(ADMIN_PASSWORD),
+                )
+                db.add(user)
+                await db.flush()
+            else:
+                # Update existing first user to match env vars
+                print(f"[seed] Updating admin: {first_user.email} → {ADMIN_EMAIL}")
+                first_user.email = ADMIN_EMAIL
+                first_user.name = ADMIN_NAME
+                first_user.password_hash = hash_password(ADMIN_PASSWORD)
+                user = first_user
+                await db.flush()
+        else:
+            # Admin exists with correct email — sync name and password
+            print(f"[seed] Syncing admin credentials for {ADMIN_EMAIL}")
+            user.name = ADMIN_NAME
+            user.password_hash = hash_password(ADMIN_PASSWORD)
+            await db.flush()
+
+        # ── Find or create default workspace ─────────────────────────────
+        result = await db.execute(
+            select(Workspace).where(Workspace.slug == DEFAULT_WORKSPACE_SLUG)
         )
-        db.add(user)
-        await db.flush()
+        workspace = result.scalar_one_or_none()
 
-        # Create default workspace
-        workspace = Workspace(
-            id=uuid.uuid4(),
-            name=DEFAULT_WORKSPACE,
-            slug=DEFAULT_WORKSPACE_SLUG,
-            workspace_type="family",
-        )
-        db.add(workspace)
-        await db.flush()
+        if workspace is None:
+            print(f"[seed] Creating workspace: /{DEFAULT_WORKSPACE_SLUG}")
+            workspace = Workspace(
+                id=uuid.uuid4(),
+                name=DEFAULT_WORKSPACE,
+                slug=DEFAULT_WORKSPACE_SLUG,
+                workspace_type="family",
+            )
+            db.add(workspace)
+            await db.flush()
 
-        # Add user as owner
-        workspace_user = WorkspaceUser(
-            id=uuid.uuid4(),
-            workspace_id=workspace.id,
-            user_id=user.id,
-            role="owner",
-            display_name=ADMIN_NAME,
-            display_color="#3B82F6",
+        # ── Ensure admin is owner of workspace ───────────────────────────
+        result = await db.execute(
+            select(WorkspaceUser).where(
+                WorkspaceUser.workspace_id == workspace.id,
+                WorkspaceUser.user_id == user.id,
+            )
         )
-        db.add(workspace_user)
-        await db.flush()
+        membership = result.scalar_one_or_none()
 
-        # Create a default calendar
-        calendar = Calendar(
-            id=uuid.uuid4(),
-            workspace_id=workspace.id,
-            name="Family",
-            color="#3B82F6",
-            is_default=True,
+        if membership is None:
+            print(f"[seed] Adding admin as owner of /{DEFAULT_WORKSPACE_SLUG}")
+            membership = WorkspaceUser(
+                id=uuid.uuid4(),
+                workspace_id=workspace.id,
+                user_id=user.id,
+                role="owner",
+                display_name=ADMIN_NAME,
+                display_color="#3B82F6",
+            )
+            db.add(membership)
+            await db.flush()
+        else:
+            # Sync display name
+            membership.display_name = ADMIN_NAME
+            if membership.role != "owner":
+                membership.role = "owner"
+            await db.flush()
+
+        # ── Ensure default calendar exists ───────────────────────────────
+        result = await db.execute(
+            select(Calendar).where(
+                Calendar.workspace_id == workspace.id,
+                Calendar.is_default == True,  # noqa: E712
+            )
         )
-        db.add(calendar)
+        if result.scalar_one_or_none() is None:
+            print(f"[seed] Creating default calendar for /{DEFAULT_WORKSPACE_SLUG}")
+            calendar = Calendar(
+                id=uuid.uuid4(),
+                workspace_id=workspace.id,
+                name="Family",
+                color="#3B82F6",
+                is_default=True,
+            )
+            db.add(calendar)
 
         await db.commit()
-        print(f"[seed] Created admin '{ADMIN_EMAIL}' with workspace '/{DEFAULT_WORKSPACE_SLUG}'")
-        print(f"[seed] ⚠️  Change the default password immediately!")
+        print(f"[seed] ✓ Admin '{ADMIN_EMAIL}' ready, workspace '/{DEFAULT_WORKSPACE_SLUG}' ready")
 
 
 async def main():
