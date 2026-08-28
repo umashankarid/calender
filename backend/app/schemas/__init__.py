@@ -13,6 +13,7 @@ from app.schemas.display import (
 )
 from app.schemas.event import EventCreate, EventResponse, EventUpdate, EventWithMembers
 from app.schemas.reminder import ReminderCreate, ReminderResponse, ReminderUpdate
+from app.schemas.shopping import ShoppingItemCreate, ShoppingItemResponse, ShoppingItemUpdate
 from app.schemas.user import (
     LoginRequest,
     TokenResponse,
@@ -65,4 +66,8 @@ __all__ = [
     "AnnouncementCreate",
     "AnnouncementUpdate",
     "AnnouncementResponse",
+    # Shopping
+    "ShoppingItemCreate",
+    "ShoppingItemUpdate",
+    "ShoppingItemResponse",
 ]

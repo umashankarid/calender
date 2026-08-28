@@ -6,6 +6,7 @@ from app.models.event import Event, EventMember
 from app.models.reminder import Reminder
 from app.models.display import Display, DisplayWidget
 from app.models.announcement import Announcement
+from app.models.shopping_item import ShoppingItem
 
 __all__ = [
     "Workspace",
@@ -18,4 +19,5 @@ __all__ = [
     "Display",
     "DisplayWidget",
     "Announcement",
+    "ShoppingItem",
 ]

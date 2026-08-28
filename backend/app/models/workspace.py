@@ -59,3 +59,6 @@ class Workspace(Base):
     announcements: Mapped[list["Announcement"]] = relationship(
         back_populates="workspace", cascade="all, delete-orphan"
     )
+    shopping_items: Mapped[list["ShoppingItem"]] = relationship(
+        back_populates="workspace", cascade="all, delete-orphan"
+    )

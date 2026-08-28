@@ -22,6 +22,7 @@ from app.models.calendar import Calendar as CalendarModel
 from app.models.display import Display, DisplayWidget
 from app.models.event import Event, EventMember
 from app.models.reminder import Reminder
+from app.models.shopping_item import ShoppingItem
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.models.workspace_user import WorkspaceUser
@@ -79,10 +80,15 @@ TOKEN_RESPONSE_FIELDS = {"access_token", "token_type"}
 
 DISPLAY_FEED_FIELDS = {
     "date", "workspace", "workspace_name", "display_id",
-    "today", "upcoming", "announcements", "reminders",
+    "today", "upcoming", "announcements", "reminders", "shopping_list",
 }
 
 VOICE_INTENT_FIELDS = {"intent", "data", "confirmation_text"}
+
+SHOPPING_ITEM_FIELDS = {
+    "id", "workspace_id", "name", "quantity", "category",
+    "is_bought", "added_by_id", "created_at", "updated_at",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -181,6 +187,14 @@ async def _seed_full_workspace(db: AsyncSession):
     db.add(display_unpaired)
     await db.flush()
 
+    shopping_item = ShoppingItem(
+        id=uuid.uuid4(), workspace_id=workspace.id,
+        name="Milk", quantity="2", category="Dairy",
+        is_bought=False, added_by_id=owner.id,
+    )
+    db.add(shopping_item)
+    await db.flush()
+
     await db.commit()
 
     token = create_access_token({"sub": str(user.id)})
@@ -191,6 +205,7 @@ async def _seed_full_workspace(db: AsyncSession):
         "owner": owner, "member": member, "calendar": calendar,
         "event": event, "reminder": reminder, "announcement": announcement,
         "display": display, "display_unpaired": display_unpaired,
+        "shopping_item": shopping_item,
         "headers": headers, "slug": workspace.slug,
     }
 
@@ -627,8 +642,75 @@ class TestVoiceContract:
         assert isinstance(data["confirmation_text"], str)
         assert data["intent"] in {
             "create_event", "query_events", "update_event",
-            "delete_event", "create_reminder", "unknown",
+            "delete_event", "create_reminder", "add_shopping_item",
+            "remove_shopping_item", "unknown",
         }
+
+
+# ===========================================================================
+# Shopping contract tests
+# ===========================================================================
+
+
+class TestShoppingContract:
+    """Verify /api/workspaces/{slug}/shopping/* responses match frontend ShoppingItem type."""
+
+    async def test_list_shopping_returns_array(self, client: AsyncClient, db: AsyncSession):
+        seed = await _seed_full_workspace(db)
+        resp = await client.get(
+            f"/api/workspaces/{seed['slug']}/shopping/", headers=seed["headers"]
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data, list)
+        for item in data:
+            assert_fields(item, SHOPPING_ITEM_FIELDS, "ShoppingItem[]")
+
+    async def test_create_shopping_returns_item(self, client: AsyncClient, db: AsyncSession):
+        seed = await _seed_full_workspace(db)
+        resp = await client.post(
+            f"/api/workspaces/{seed['slug']}/shopping/",
+            json={"name": "Bread", "quantity": "1", "category": "Bakery"},
+            headers=seed["headers"],
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert_fields(data, SHOPPING_ITEM_FIELDS, "ShoppingItem")
+
+    async def test_toggle_returns_updated_item(self, client: AsyncClient, db: AsyncSession):
+        seed = await _seed_full_workspace(db)
+        # Create an item first
+        create_resp = await client.post(
+            f"/api/workspaces/{seed['slug']}/shopping/",
+            json={"name": "Eggs"},
+            headers=seed["headers"],
+        )
+        assert create_resp.status_code == 201
+        item_id = create_resp.json()["id"]
+        assert create_resp.json()["is_bought"] is False
+
+        # Toggle
+        toggle_resp = await client.put(
+            f"/api/workspaces/{seed['slug']}/shopping/{item_id}/toggle",
+            headers=seed["headers"],
+        )
+        assert toggle_resp.status_code == 200
+        data = toggle_resp.json()
+        assert_fields(data, SHOPPING_ITEM_FIELDS, "ShoppingItem (toggled)")
+        assert data["is_bought"] is True
+
+    async def test_display_feed_includes_shopping_list(self, client: AsyncClient, db: AsyncSession):
+        seed = await _seed_full_workspace(db)
+        resp = await client.get(
+            f"/api/workspaces/{seed['slug']}/displays/by-token/"
+            f"{seed['display'].token}/today"
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "shopping_list" in data
+        assert isinstance(data["shopping_list"], list)
+        # Seed has one unbought shopping item
+        assert len(data["shopping_list"]) >= 1
 
 
 # ===========================================================================

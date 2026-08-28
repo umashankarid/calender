@@ -9,6 +9,7 @@ import UpcomingEvents from '../components/display/UpcomingEvents';
 import AnnouncementsBanner from '../components/display/AnnouncementsBanner';
 import RemindersList from '../components/display/RemindersList';
 import InteractivePanel from '../components/display/InteractivePanel';
+import ShoppingWidget from '../components/display/ShoppingWidget';
 import EventDetailModal from '../components/interactive/EventDetailModal';
 
 const REFRESH_INTERVAL_MS = 30_000;
@@ -230,13 +231,14 @@ export default function DisplayPage() {
           onEventClick={handleEventClick}
         />
 
-        {/* Right column — Upcoming + Reminders */}
+        {/* Right column — Upcoming + Reminders + Shopping */}
         <div className="flex flex-col gap-6 overflow-hidden">
           <UpcomingEvents
             events={feed.upcoming}
             onEventClick={(ev) => handleEventClick(ev as EventWithMembers)}
           />
           {feed.reminders.length > 0 && <RemindersList reminders={feed.reminders} />}
+          <ShoppingWidget items={feed.shopping_list ?? []} />
         </div>
       </main>
 

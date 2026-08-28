@@ -101,6 +101,20 @@ export interface Announcement {
   updated_at: string;
 }
 
+// ── Shopping ──────────────────────────────────────────────────────────────────
+
+export interface ShoppingItem {
+  id: string;
+  workspace_id: string;
+  name: string;
+  quantity: string | null;
+  category: string | null;
+  is_bought: boolean;
+  added_by_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ── Display / Wall ───────────────────────────────────────────────────────────
 
 export interface Display {
@@ -132,6 +146,7 @@ export interface DisplayFeed {
   upcoming: EventWithMembers[];
   announcements: Announcement[];
   reminders: Reminder[];
+  shopping_list: ShoppingItem[];
 }
 
 // ── Auth ─────────────────────────────────────────────────────────────────────

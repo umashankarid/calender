@@ -12,7 +12,7 @@ interface BottomNavProps {
 const TABS: { key: TabKey; label: string; icon: string }[] = [
   { key: 'today', label: 'Today', icon: '🏠' },
   { key: 'calendar', label: 'Calendar', icon: '📅' },
-  { key: 'tasks', label: 'Tasks', icon: '☑️' },
+  { key: 'tasks', label: 'Shopping', icon: '☑️' },
   { key: 'more', label: 'More', icon: '⚙️' },
 ];
 

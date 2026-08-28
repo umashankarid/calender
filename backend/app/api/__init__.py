@@ -9,6 +9,7 @@ from app.api.displays import router as displays_router
 from app.api.events import router as events_router
 from app.api.members import router as members_router
 from app.api.reminders import router as reminders_router
+from app.api.shopping import router as shopping_router
 from app.api.voice import router as voice_router
 from app.api.workspaces import router as workspaces_router
 
@@ -22,4 +23,5 @@ api_router.include_router(events_router)
 api_router.include_router(reminders_router)
 api_router.include_router(announcements_router)
 api_router.include_router(displays_router)
+api_router.include_router(shopping_router)
 api_router.include_router(voice_router)

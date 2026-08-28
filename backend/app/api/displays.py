@@ -22,6 +22,7 @@ from app.models.announcement import Announcement
 from app.models.display import Display, DisplayWidget
 from app.models.event import Event, EventMember
 from app.models.reminder import Reminder
+from app.models.shopping_item import ShoppingItem
 from app.models.workspace import Workspace
 from app.models.workspace_user import WorkspaceUser
 from app.schemas.display import (
@@ -299,6 +300,28 @@ async def get_today_by_token(
         for r in rem_result.scalars().all()
     ]
 
+    # Shopping list — unbought items
+    shopping_result = await db.execute(
+        select(ShoppingItem)
+        .where(
+            ShoppingItem.workspace_id == workspace.id,
+            ShoppingItem.is_bought == False,  # noqa: E712
+        )
+        .order_by(ShoppingItem.created_at)
+    )
+    shopping_list = [
+        {
+            "id": str(s.id),
+            "name": s.name,
+            "quantity": s.quantity,
+            "category": s.category,
+            "is_bought": s.is_bought,
+            "added_by_id": str(s.added_by_id) if s.added_by_id else None,
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+        }
+        for s in shopping_result.scalars().all()
+    ]
+
     return {
         "date": today_start.date().isoformat(),
         "workspace": {
@@ -344,6 +367,7 @@ async def get_today_by_token(
         "upcoming": upcoming_events,
         "announcements": announcements,
         "reminders": reminders,
+        "shopping_list": shopping_list,
     }
 
 

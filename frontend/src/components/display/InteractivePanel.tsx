@@ -1,7 +1,12 @@
 import { useState } from 'react';
-import type { EventWithMembers } from '../../types';
+import type { EventWithMembers, ShoppingItem } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useWorkspace } from '../../hooks/useWorkspace';
+import {
+  listShoppingItems,
+  addShoppingItem,
+  toggleShoppingItem,
+} from '../../api/shopping';
 import QuickAdd from '../interactive/QuickAdd';
 import AddEventModal from '../interactive/AddEventModal';
 import DisplayEventCard from './DisplayEventCard';
@@ -102,7 +107,69 @@ export default function InteractivePanel({
   const { members } = useWorkspace(slug);
   const [showAddModal, setShowAddModal] = useState(false);
 
+  // Shopping state
+  const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>([]);
+  const [shoppingText, setShoppingText] = useState('');
+  const [shoppingAdding, setShoppingAdding] = useState(false);
+  const [shoppingLoaded, setShoppingLoaded] = useState(false);
+
   const isAuthenticated = !!token;
+
+  // Load shopping items when panel opens
+  const loadShopping = async () => {
+    if (!token) return;
+    try {
+      const items = await listShoppingItems(slug, token, false);
+      setShoppingItems(items);
+      setShoppingLoaded(true);
+    } catch {
+      // Ignore — shopping is supplementary
+    }
+  };
+
+  // Load shopping on open
+  if (isOpen && isAuthenticated && !shoppingLoaded) {
+    loadShopping();
+  }
+
+  // Reset state when panel closes
+  if (!isOpen && shoppingLoaded) {
+    setShoppingLoaded(false);
+    setShoppingItems([]);
+  }
+
+  const handleShoppingAdd = async () => {
+    if (!shoppingText.trim() || !token) return;
+    setShoppingAdding(true);
+    try {
+      await addShoppingItem(slug, { name: shoppingText.trim() }, token);
+      setShoppingText('');
+      await loadShopping();
+      onEventSaved();
+    } catch {
+      // Ignore
+    } finally {
+      setShoppingAdding(false);
+    }
+  };
+
+  const handleShoppingToggle = async (itemId: string) => {
+    if (!token) return;
+    try {
+      await toggleShoppingItem(slug, itemId, token);
+      await loadShopping();
+      onEventSaved();
+    } catch {
+      // Ignore
+    }
+  };
+
+  const handleShoppingKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleShoppingAdd();
+    }
+  };
 
   const handleEventSaved = () => {
     onEventSaved();
@@ -208,6 +275,73 @@ export default function InteractivePanel({
                     <p className="text-gray-500 text-sm">No events today</p>
                   </div>
                 )}
+
+                {/* Shopping section */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wide px-1">
+                    🛒 Shopping
+                  </h3>
+
+                  {/* Quick add input */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={shoppingText}
+                      onChange={(e) => setShoppingText(e.target.value)}
+                      onKeyDown={handleShoppingKeyDown}
+                      placeholder="Add shopping item..."
+                      disabled={shoppingAdding}
+                      className="flex-1 min-h-[44px] px-4 py-2 rounded-xl bg-gray-700 border border-gray-600 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      aria-label="Add shopping item"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleShoppingAdd}
+                      disabled={!shoppingText.trim() || shoppingAdding}
+                      className="flex-shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                      aria-label="Add item"
+                    >
+                      {shoppingAdding ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m-7-7h14" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Unbought items list */}
+                  {shoppingItems.length > 0 && (
+                    <div className="space-y-1">
+                      {shoppingItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-gray-700/50 transition-colors"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleShoppingToggle(item.id)}
+                            className="flex-shrink-0 w-[44px] h-[44px] flex items-center justify-center text-gray-400 hover:text-green-400 transition-colors"
+                            aria-label={`Mark ${item.name} as bought`}
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                              <rect x="3" y="3" width="18" height="18" rx="4" />
+                            </svg>
+                          </button>
+                          <span className="flex-1 text-sm text-white truncate">{item.name}</span>
+                          {item.quantity && (
+                            <span className="text-xs text-gray-400 flex-shrink-0">{item.quantity}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {shoppingLoaded && shoppingItems.length === 0 && (
+                    <p className="text-xs text-gray-500 px-1">Nothing to buy ✓</p>
+                  )}
+                </div>
               </>
             )}
           </div>

@@ -8,6 +8,7 @@ import FloatingAddButton from '../components/interactive/FloatingAddButton';
 import TodayView from '../components/interactive/TodayView';
 import CalendarView from '../components/interactive/CalendarView';
 import AddEventModal from '../components/interactive/AddEventModal';
+import ShoppingList from '../components/interactive/ShoppingList';
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -19,12 +20,18 @@ export default function InteractivePage() {
 
   const [activeTab, setActiveTab] = useState<TabKey>('today');
   const [showAddEvent, setShowAddEvent] = useState(false);
-  const [_addType, setAddType] = useState<'event' | 'reminder' | 'announcement'>('event');
+  const [_addType, setAddType] = useState<'event' | 'reminder' | 'announcement' | 'shopping'>('event');
+  const [shoppingAutoFocus, setShoppingAutoFocus] = useState(false);
 
   const loading = authLoading || wsLoading;
 
   // Handle FAB selection
-  const handleAddSelect = (type: 'event' | 'reminder' | 'announcement') => {
+  const handleAddSelect = (type: 'event' | 'reminder' | 'announcement' | 'shopping') => {
+    if (type === 'shopping') {
+      setActiveTab('tasks');
+      setShoppingAutoFocus(true);
+      return;
+    }
     setAddType(type);
     setShowAddEvent(true);
   };
@@ -98,13 +105,10 @@ export default function InteractivePage() {
         )}
 
         {activeTab === 'tasks' && (
-          <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-            <div className="text-5xl mb-4" role="img" aria-hidden="true">☑️</div>
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Tasks</h2>
-            <p className="text-sm text-gray-400">
-              Task management coming soon. Track to-dos and assignments for your family.
-            </p>
-          </div>
+          <ShoppingList
+            slug={slug!}
+            autoFocusAdd={shoppingAutoFocus}
+          />
         )}
 
         {activeTab === 'more' && (

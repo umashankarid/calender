@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type AddType = 'event' | 'reminder' | 'announcement';
+type AddType = 'event' | 'reminder' | 'announcement' | 'shopping';
 
 interface FloatingAddButtonProps {
   onSelect: (type: AddType) => void;
@@ -14,6 +14,7 @@ const OPTIONS: { key: AddType; label: string; icon: string }[] = [
   { key: 'event', label: 'Event', icon: '📅' },
   { key: 'reminder', label: 'Reminder', icon: '🔔' },
   { key: 'announcement', label: 'Announcement', icon: '📢' },
+  { key: 'shopping', label: 'Shopping item', icon: '🛒' },
 ];
 
 // ── Component ────────────────────────────────────────────────────────────────

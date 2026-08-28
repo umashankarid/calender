@@ -261,6 +261,36 @@ def interpret_text(text: str) -> dict:
     """Main dispatcher: classify intent and parse accordingly."""
     lower = text.lower().strip()
 
+    # Shopping list patterns — add item
+    add_shopping_match = re.match(
+        r"(?:add\s+(.+?)\s+to\s+(?:shopping\s+)?list|we\s+need\s+(.+)|buy\s+(.+))",
+        lower,
+    )
+    if add_shopping_match:
+        item = (
+            add_shopping_match.group(1)
+            or add_shopping_match.group(2)
+            or add_shopping_match.group(3)
+        ).strip()
+        return {
+            "intent": "add_shopping_item",
+            "data": {"name": item},
+            "confirmation_text": f"Add '{item}' to the shopping list",
+        }
+
+    # Shopping list patterns — remove item
+    remove_shopping_match = re.match(
+        r"remove\s+(.+?)\s+from\s+(?:(?:the\s+)?(?:shopping\s+)?list)",
+        lower,
+    )
+    if remove_shopping_match:
+        item = remove_shopping_match.group(1).strip()
+        return {
+            "intent": "remove_shopping_item",
+            "data": {"name": item},
+            "confirmation_text": f"Remove '{item}' from the shopping list",
+        }
+
     # Create event patterns
     if re.match(r"^(add|create|schedule|book|set up|plan)\s", lower):
         return _parse_create_event(text)
