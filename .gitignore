@@ -61,3 +61,4 @@ docker-compose.override.yml
 
 # Docker Compose local overrides (not for production/Coolify)
 docker-compose.override.yml
+data/
