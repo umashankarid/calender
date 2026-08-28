@@ -25,6 +25,11 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-calendarhub}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-calendarhub}
       SECRET_KEY: ${SECRET_KEY:-dev-secret-change-in-production}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@calendarhub.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme}
+      ADMIN_NAME: ${ADMIN_NAME:-Admin}
+      DEFAULT_WORKSPACE_NAME: ${DEFAULT_WORKSPACE_NAME:-Home}
+      DEFAULT_WORKSPACE_SLUG: ${DEFAULT_WORKSPACE_SLUG:-home}
     depends_on:
       db:
         condition: service_healthy

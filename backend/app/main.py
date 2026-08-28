@@ -12,12 +12,17 @@ from app.core.database import Base, engine
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Create database tables on startup."""
+    """Create database tables on startup and seed default admin if empty."""
     # Import all models so Base.metadata knows about them
     import app.models  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Seed default admin + workspace on first run
+    from app.seed import seed
+    await seed()
+
     yield
 
 
