@@ -3,6 +3,13 @@ const API_URL: string =
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+/** Ensure path ends with / to avoid 307 redirects on POST/PUT */
+function normalizePath(path: string): string {
+  const [base, query] = path.split('?');
+  const normalized = base.endsWith('/') ? base : base + '/';
+  return query ? `${normalized}?${query}` : normalized;
+}
+
 function headers(token?: string): HeadersInit {
   const h: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -32,7 +39,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
 // ── Public API ───────────────────────────────────────────────────────────────
 
 export async function apiGet<T>(path: string, token?: string): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${API_URL}${normalizePath(path)}`, {
     method: 'GET',
     headers: headers(token),
   });
@@ -44,7 +51,7 @@ export async function apiPost<T>(
   body: unknown,
   token?: string,
 ): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${API_URL}${normalizePath(path)}`, {
     method: 'POST',
     headers: headers(token),
     body: JSON.stringify(body),
@@ -57,7 +64,7 @@ export async function apiPut<T>(
   body: unknown,
   token?: string,
 ): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${API_URL}${normalizePath(path)}`, {
     method: 'PUT',
     headers: headers(token),
     body: JSON.stringify(body),
@@ -66,7 +73,7 @@ export async function apiPut<T>(
 }
 
 export async function apiDelete(path: string, token?: string): Promise<void> {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${API_URL}${normalizePath(path)}`, {
     method: 'DELETE',
     headers: headers(token),
   });
