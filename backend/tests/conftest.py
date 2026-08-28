@@ -124,7 +124,7 @@ async def app(_engine):
 async def client(app) -> AsyncGenerator[AsyncClient, None]:
     """Provide an httpx.AsyncClient wired to the test FastAPI app."""
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(transport=transport, base_url="http://test", follow_redirects=True) as ac:
         yield ac
 
 

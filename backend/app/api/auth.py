@@ -15,7 +15,7 @@ from app.schemas.user import LoginRequest, TokenResponse, UserCreate, UserRespon
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register/", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
     """Create a new user account and return a JWT for immediate login."""
     result = await db.execute(select(User).where(User.email == data.email))
@@ -38,7 +38,7 @@ async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
     return TokenResponse(access_token=token)
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login/", response_model=TokenResponse)
 async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     """Authenticate with email/password and receive a JWT."""
     result = await db.execute(select(User).where(User.email == data.email))
@@ -54,7 +54,7 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     return TokenResponse(access_token=token)
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me/", response_model=UserResponse)
 async def me(
     payload: dict = Depends(require_auth),
     db: AsyncSession = Depends(get_db),

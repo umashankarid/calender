@@ -87,7 +87,7 @@ async def test_pair_display(client, create_test_user, create_test_workspace):
 
     # Pair (no auth needed — the code IS the auth)
     pair_resp = await client.post(
-        displays_url(workspace.slug, "/pair"),
+        displays_url(workspace.slug, "/pair/"),
         json={"pairing_code": pairing_code},
     )
     assert pair_resp.status_code == 200
@@ -103,7 +103,7 @@ async def test_pair_display_invalid_code(client, create_test_user, create_test_w
     workspace = await create_test_workspace(user.id)
 
     resp = await client.post(
-        displays_url(workspace.slug, "/pair"),
+        displays_url(workspace.slug, "/pair/"),
         json={"pairing_code": "000000"},
     )
     assert resp.status_code == 404
@@ -140,7 +140,7 @@ async def test_pair_display_expired_code(
 
     # Attempt pairing with expired code
     pair_resp = await client.post(
-        displays_url(workspace.slug, "/pair"),
+        displays_url(workspace.slug, "/pair/"),
         json={"pairing_code": pairing_code},
     )
     assert pair_resp.status_code == 410

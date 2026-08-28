@@ -134,7 +134,7 @@ class PairRequest(BaseModel):
     pairing_code: str
 
 
-@router.post("/pair")
+@router.post("/pair/")
 async def pair_display(
     slug: str,
     data: PairRequest,

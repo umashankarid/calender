@@ -207,7 +207,7 @@ async def test_delete_bought(client: AsyncClient, db: AsyncSession):
     await client.put(f"{BASE}/{ws.slug}/shopping/{r2.json()['id']}/toggle", headers=headers)
 
     # Delete all bought items
-    del_resp = await client.delete(f"{BASE}/{ws.slug}/shopping/bought", headers=headers)
+    del_resp = await client.delete(f"{BASE}/{ws.slug}/shopping/bought/", headers=headers)
     assert del_resp.status_code == 204
 
     # Verify only Eggs remains

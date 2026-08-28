@@ -329,7 +329,7 @@ def interpret_text(text: str) -> dict:
 # ---------------------------------------------------------------------------
 
 
-@router.post("/interpret", response_model=VoiceResult)
+@router.post("/interpret/", response_model=VoiceResult)
 async def voice_interpret(
     slug: str,
     body: VoiceInput,

@@ -552,7 +552,7 @@ class TestDisplayContract:
         """Frontend sends JSON { pairing_code: "..." } — backend returns display info."""
         seed = await _seed_full_workspace(db)
         resp = await client.post(
-            f"/api/workspaces/{seed['slug']}/displays/pair",
+            f"/api/workspaces/{seed['slug']}/displays/pair/",
             json={"pairing_code": "999888"},
         )
         assert resp.status_code == 200
@@ -756,7 +756,7 @@ class TestCrossCutting:
         pairing_code = display.json()["pairing_code"]
 
         # 5. Pair display
-        paired = await client.post(f"/api/workspaces/{slug}/displays/pair", json={
+        paired = await client.post(f"/api/workspaces/{slug}/displays/pair/", json={
             "pairing_code": pairing_code,
         })
         assert paired.status_code == 200

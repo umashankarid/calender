@@ -172,7 +172,7 @@ async def toggle_shopping_item(
     return item
 
 
-@router.delete("/bought", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/bought/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_bought_items(
     slug: str,
     payload: dict = Depends(require_auth),
