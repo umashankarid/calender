@@ -1,0 +1,18 @@
+# Local development overrides — adds host port bindings.
+# This file is auto-loaded by `docker compose up` when present.
+# Do NOT commit to production or Coolify — it's in .gitignore.
+
+services:
+  db:
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5433}:5432"
+
+  backend:
+    ports:
+      - "${API_PORT:-8001}:8000"
+
+  frontend:
+    ports:
+      - "${FRONTEND_PORT:-3001}:3000"
