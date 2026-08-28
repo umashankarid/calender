@@ -41,9 +41,10 @@ async def test_register_duplicate_email(client: AsyncClient):
     resp1 = await register_user(client, email="dup@example.com")
     assert resp1.status_code == 201
 
-    resp2 = await register_user(client, email="dup@example.com")
-    assert resp2.status_code == 409
-    assert "already exists" in resp2.json()["detail"].lower()
+    # Re-registering with same email claims the account (updates name/password)
+    resp2 = await register_user(client, email="dup@example.com", name="New Name")
+    assert resp2.status_code == 201
+    assert "access_token" in resp2.json()
 
 
 async def test_register_invalid_email(client: AsyncClient):

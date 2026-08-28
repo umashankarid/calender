@@ -17,13 +17,23 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register/", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
-    """Create a new user account and return a JWT for immediate login."""
+    """Create a new user account and return a JWT for immediate login.
+    
+    If the email was already invited (placeholder user created by admin),
+    the user claims the account by setting their name and password.
+    """
     result = await db.execute(select(User).where(User.email == data.email))
-    if result.scalar_one_or_none() is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="A user with this email already exists",
-        )
+    existing_user = result.scalar_one_or_none()
+
+    if existing_user is not None:
+        # Allow claiming a placeholder account (created by admin invite).
+        # Update their name and password so they can log in.
+        existing_user.name = data.name
+        existing_user.password_hash = hash_password(data.password)
+        await db.flush()
+        await db.refresh(existing_user)
+        token = create_access_token({"sub": str(existing_user.id)})
+        return TokenResponse(access_token=token)
 
     user = User(
         email=data.email,

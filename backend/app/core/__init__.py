@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
 
+    # Google Calendar OAuth
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = ""
+
     model_config = ConfigDict(env_file=".env", extra="ignore")
 
     @property

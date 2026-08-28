@@ -12,6 +12,54 @@ import AddEventModal from '../components/interactive/AddEventModal';
 import ShoppingList from '../components/interactive/ShoppingList';
 import type { Display } from '../types';
 
+// ── Live Clock Header ─────────────────────────────────────────────────────────
+
+function LiveClockHeader({
+  workspaceName,
+  userName,
+  eventsLoading,
+}: {
+  workspaceName: string;
+  userName?: string;
+  eventsLoading: boolean;
+}) {
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const clock = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  const date = now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+
+  return (
+    <header className="flex-shrink-0 bg-white border-b border-gray-100 px-4 py-3 safe-area-top">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-base font-bold text-gray-900">
+            {workspaceName}
+          </h1>
+          {userName && (
+            <p className="text-xs text-gray-400">
+              Hi, {userName}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          {eventsLoading && (
+            <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+          )}
+          <div className="text-right">
+            <p className="text-2xl font-mono font-bold text-gray-900">{clock}</p>
+            <p className="text-xs text-gray-400">{date}</p>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+
 // ── Menu Item Component ──────────────────────────────────────────────────────
 
 function MenuItem({
@@ -388,23 +436,11 @@ export default function InteractivePage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <header className="flex-shrink-0 bg-white border-b border-gray-100 px-4 py-3 safe-area-top">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-base font-bold text-gray-900">
-              {workspace.name}
-            </h1>
-            {user && (
-              <p className="text-xs text-gray-400">
-                Hi, {user.name}
-              </p>
-            )}
-          </div>
-          {eventsLoading && (
-            <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-          )}
-        </div>
-      </header>
+      <LiveClockHeader
+        workspaceName={workspace.name}
+        userName={user?.name}
+        eventsLoading={eventsLoading}
+      />
 
       {/* Main content area */}
       <main className="flex-1 flex flex-col min-h-0 pb-14">

@@ -30,6 +30,9 @@ services:
       ADMIN_NAME: ${ADMIN_NAME:-Admin}
       DEFAULT_WORKSPACE_NAME: ${DEFAULT_WORKSPACE_NAME:-Home}
       DEFAULT_WORKSPACE_SLUG: ${DEFAULT_WORKSPACE_SLUG:-home}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
     depends_on:
       db:
         condition: service_healthy

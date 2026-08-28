@@ -199,6 +199,8 @@ async def get_today_by_token(
     today_end = today_start + timedelta(days=1)
 
     # Today's events with members
+    # NOTE: This includes Google-synced events (source='google') automatically
+    #       since they are stored in the same events table.
     events_result = await db.execute(
         select(Event)
         .options(

@@ -163,3 +163,11 @@ export interface VoiceIntent {
   data: Record<string, unknown>;
   confirmation_text: string;
 }
+
+// ── Google Calendar ──────────────────────────────────────────────────────────
+
+export interface GoogleCalendar {
+  id: string;
+  summary: string;
+  backgroundColor: string;
+}
