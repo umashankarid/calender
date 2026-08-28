@@ -58,3 +58,6 @@ docker-compose.override.yml
 *.log
 *.bak
 *.tmp
+
+# Docker Compose local overrides (not for production/Coolify)
+docker-compose.override.yml
