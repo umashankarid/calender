@@ -2,7 +2,7 @@ import type { Workspace } from '../types';
 import { apiGet, apiPost, apiPut } from './client';
 
 export async function listWorkspaces(token: string): Promise<Workspace[]> {
-  return apiGet<Workspace[]>('/api/workspaces/', token);
+  return apiGet<Workspace[]>('/api/workspaces', token);
 }
 
 export async function getWorkspace(
@@ -16,7 +16,7 @@ export async function createWorkspace(
   data: { name: string; slug: string; timezone?: string },
   token: string,
 ): Promise<Workspace> {
-  return apiPost<Workspace>('/api/workspaces/', data, token);
+  return apiPost<Workspace>('/api/workspaces', data, token);
 }
 
 export async function updateWorkspace(

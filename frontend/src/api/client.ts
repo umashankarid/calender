@@ -3,11 +3,18 @@ const API_URL: string =
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Ensure path ends with / to avoid 307 redirects on POST/PUT */
-function normalizePath(path: string): string {
-  const [base, query] = path.split('?');
-  const normalized = base.endsWith('/') ? base : base + '/';
-  return query ? `${normalized}?${query}` : normalized;
+/**
+ * Ensure the path portion ends with `/` to prevent FastAPI 307 redirects.
+ * Preserves query strings: `/api/foo?x=1` → `/api/foo/?x=1`
+ */
+function ensureTrailingSlash(path: string): string {
+  const qIdx = path.indexOf('?');
+  if (qIdx === -1) {
+    return path.endsWith('/') ? path : path + '/';
+  }
+  const base = path.slice(0, qIdx);
+  const query = path.slice(qIdx);
+  return (base.endsWith('/') ? base : base + '/') + query;
 }
 
 function headers(token?: string): HeadersInit {
@@ -39,7 +46,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
 // ── Public API ───────────────────────────────────────────────────────────────
 
 export async function apiGet<T>(path: string, token?: string): Promise<T> {
-  const res = await fetch(`${API_URL}${normalizePath(path)}`, {
+  const res = await fetch(`${API_URL}${ensureTrailingSlash(path)}`, {
     method: 'GET',
     headers: headers(token),
   });
@@ -51,7 +58,7 @@ export async function apiPost<T>(
   body: unknown,
   token?: string,
 ): Promise<T> {
-  const res = await fetch(`${API_URL}${normalizePath(path)}`, {
+  const res = await fetch(`${API_URL}${ensureTrailingSlash(path)}`, {
     method: 'POST',
     headers: headers(token),
     body: JSON.stringify(body),
@@ -64,7 +71,7 @@ export async function apiPut<T>(
   body: unknown,
   token?: string,
 ): Promise<T> {
-  const res = await fetch(`${API_URL}${normalizePath(path)}`, {
+  const res = await fetch(`${API_URL}${ensureTrailingSlash(path)}`, {
     method: 'PUT',
     headers: headers(token),
     body: JSON.stringify(body),
@@ -73,7 +80,7 @@ export async function apiPut<T>(
 }
 
 export async function apiDelete(path: string, token?: string): Promise<void> {
-  const res = await fetch(`${API_URL}${normalizePath(path)}`, {
+  const res = await fetch(`${API_URL}${ensureTrailingSlash(path)}`, {
     method: 'DELETE',
     headers: headers(token),
   });
