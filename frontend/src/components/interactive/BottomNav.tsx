@@ -1,6 +1,6 @@
 // ── Types ────────────────────────────────────────────────────────────────────
 
-export type TabKey = 'today' | 'calendar' | 'tasks' | 'more';
+export type TabKey = 'today' | 'calendar' | 'shopping' | 'display' | 'menu';
 
 interface BottomNavProps {
   active: TabKey;
@@ -12,8 +12,9 @@ interface BottomNavProps {
 const TABS: { key: TabKey; label: string; icon: string }[] = [
   { key: 'today', label: 'Today', icon: '🏠' },
   { key: 'calendar', label: 'Calendar', icon: '📅' },
-  { key: 'tasks', label: 'Shopping', icon: '☑️' },
-  { key: 'more', label: 'More', icon: '⚙️' },
+  { key: 'shopping', label: 'Shopping', icon: '🛒' },
+  { key: 'display', label: 'Display', icon: '📺' },
+  { key: 'menu', label: 'Menu', icon: '⚙️' },
 ];
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -21,7 +22,7 @@ const TABS: { key: TabKey; label: string; icon: string }[] = [
 export default function BottomNav({ active, onChange }: BottomNavProps) {
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200"
+      className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200 safe-area-bottom"
       style={{ height: 56 }}
       aria-label="Main navigation"
     >
@@ -33,17 +34,17 @@ export default function BottomNav({ active, onChange }: BottomNavProps) {
               key={tab.key}
               onClick={() => onChange(tab.key)}
               aria-current={isActive ? 'page' : undefined}
-              className={`flex-1 flex flex-col items-center justify-center min-h-[56px] gap-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+              className={`flex-1 flex flex-col items-center justify-center min-h-[48px] gap-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 relative ${
                 isActive
                   ? 'text-blue-600'
                   : 'text-gray-500 active:bg-gray-50'
               }`}
             >
-              <span className="text-xl leading-none" role="img" aria-hidden="true">
+              <span className="text-lg leading-none" role="img" aria-hidden="true">
                 {tab.icon}
               </span>
               <span
-                className={`text-[11px] font-medium ${
+                className={`text-[10px] font-medium ${
                   isActive ? 'text-blue-600' : 'text-gray-500'
                 }`}
               >

@@ -142,6 +142,7 @@ function WorkspacePicker() {
   const [newSlug, setNewSlug] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autoRedirectAttempted, setAutoRedirectAttempted] = useState(false);
 
   const fetchWorkspaces = async () => {
     if (!token) return;
@@ -149,6 +150,18 @@ function WorkspacePicker() {
     try {
       const data = await listWorkspaces(token);
       setWorkspaces(data);
+
+      // Auto-redirect: if user has exactly 1 workspace, go directly there
+      if (!autoRedirectAttempted && data.length === 1) {
+        setAutoRedirectAttempted(true);
+        navigate(`/${data[0].slug}`, { replace: true });
+        return;
+      }
+
+      // If no workspaces, auto-show the create form
+      if (data.length === 0) {
+        setShowCreate(true);
+      }
     } catch {
       // ignore
     } finally {
@@ -199,7 +212,7 @@ function WorkspacePicker() {
                 <li key={ws.id}>
                   <button
                     onClick={() => navigate(`/${ws.slug}`)}
-                    className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition flex items-center justify-between group"
+                    className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition flex items-center justify-between group min-h-[48px]"
                   >
                     <div>
                       <span className="font-medium text-gray-900 group-hover:text-indigo-700">
@@ -231,12 +244,15 @@ function WorkspacePicker() {
           {!showCreate ? (
             <button
               onClick={() => setShowCreate(true)}
-              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-3 text-gray-500 hover:border-indigo-400 hover:text-indigo-600 transition font-medium text-sm"
+              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-3 text-gray-500 hover:border-indigo-400 hover:text-indigo-600 transition font-medium text-sm min-h-[48px]"
             >
               + Create a workspace
             </button>
           ) : (
             <form onSubmit={handleCreate} className="space-y-3 border-t border-gray-100 pt-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {workspaces.length === 0 ? 'Create your first workspace' : 'New workspace'}
+              </h3>
               <div>
                 <label htmlFor="ws-name" className="block text-sm font-medium text-gray-700 mb-1">
                   Workspace name
@@ -282,17 +298,19 @@ function WorkspacePicker() {
               )}
 
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreate(false)}
-                  className="flex-1 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition text-sm font-medium"
-                >
-                  Cancel
-                </button>
+                {workspaces.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowCreate(false)}
+                    className="flex-1 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition text-sm font-medium min-h-[48px]"
+                  >
+                    Cancel
+                  </button>
+                )}
                 <button
                   type="submit"
                   disabled={creating}
-                  className="flex-1 bg-indigo-600 text-white py-2.5 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 transition text-sm"
+                  className="flex-1 bg-indigo-600 text-white py-2.5 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 transition text-sm min-h-[48px]"
                 >
                   {creating ? 'Creating…' : 'Create'}
                 </button>

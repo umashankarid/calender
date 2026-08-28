@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect, type ReactNode } from 'react';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useWorkspace } from '../hooks/useWorkspace';
 import WorkspaceSettings from '../components/admin/WorkspaceSettings';
@@ -8,6 +8,8 @@ import CalendarManagement from '../components/admin/CalendarManagement';
 import DisplayManagement from '../components/admin/DisplayManagement';
 
 type Tab = 'settings' | 'members' | 'calendars' | 'displays';
+
+const VALID_TABS: Tab[] = ['settings', 'members', 'calendars', 'displays'];
 
 const TABS: { key: Tab; label: string; icon: ReactNode }[] = [
   {
@@ -48,11 +50,34 @@ const TABS: { key: Tab; label: string; icon: ReactNode }[] = [
   },
 ];
 
+function isValidTab(tab: string | null): tab is Tab {
+  return tab !== null && VALID_TABS.includes(tab as Tab);
+}
+
 export default function AdminPage() {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { workspace, members, calendars, loading, refetch } = useWorkspace(slug);
-  const [activeTab, setActiveTab] = useState<Tab>('settings');
+
+  // Read initial tab from ?tab= query param
+  const tabParam = searchParams.get('tab');
+  const initialTab: Tab = isValidTab(tabParam) ? tabParam : 'settings';
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+
+  // Sync tab state with URL param changes (e.g., from menu navigation)
+  useEffect(() => {
+    const newTab = searchParams.get('tab');
+    if (isValidTab(newTab) && newTab !== activeTab) {
+      setActiveTab(newTab);
+    }
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update URL when tab changes
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+    setSearchParams({ tab }, { replace: true });
+  };
 
   if (loading) {
     return (
@@ -78,25 +103,25 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top Header */}
-      <header className="bg-white border-b border-gray-200">
+      <header className="bg-white border-b border-gray-200 safe-area-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-3">
               <Link
                 to={`/${slug}`}
-                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-600 transition-colors"
+                className="flex items-center gap-1.5 text-sm text-indigo-600 font-medium hover:text-indigo-700 transition-colors min-h-[44px] px-1"
               >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
-                Back
+                Back to Calendar
               </Link>
-              <div className="h-5 w-px bg-gray-200" />
-              <h1 className="text-sm font-semibold text-gray-900">{workspace.name}</h1>
+              <div className="h-5 w-px bg-gray-200 hidden sm:block" />
+              <h1 className="text-sm font-semibold text-gray-900 hidden sm:block">{workspace.name}</h1>
               <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Admin</span>
             </div>
             {user && (
-              <div className="text-xs text-gray-400">
+              <div className="text-xs text-gray-400 hidden sm:block">
                 {user.name}
               </div>
             )}
@@ -111,8 +136,8 @@ export default function AdminPage() {
             <button
               key={tab.key}
               type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-3 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+              onClick={() => handleTabChange(tab.key)}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-3 text-xs font-medium border-b-2 transition-colors whitespace-nowrap min-h-[48px] ${
                 activeTab === tab.key
                   ? 'border-indigo-600 text-indigo-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -135,7 +160,7 @@ export default function AdminPage() {
                 <button
                   key={tab.key}
                   type="button"
-                  onClick={() => setActiveTab(tab.key)}
+                  onClick={() => handleTabChange(tab.key)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors text-left ${
                     activeTab === tab.key
                       ? 'bg-indigo-50 text-indigo-700'
@@ -148,6 +173,19 @@ export default function AdminPage() {
                   {tab.label}
                 </button>
               ))}
+
+              {/* Back to app link in sidebar */}
+              <div className="pt-4 mt-4 border-t border-gray-200">
+                <Link
+                  to={`/${slug}`}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors text-left"
+                >
+                  <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Back to Calendar
+                </Link>
+              </div>
             </div>
           </nav>
 
