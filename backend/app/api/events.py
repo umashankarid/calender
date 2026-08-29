@@ -1,8 +1,11 @@
 """Event routes: list, get, create, update, delete — with member associations."""
 
+import logging
 import uuid
 from datetime import datetime
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -71,14 +74,17 @@ def event_to_response(event: Event) -> dict:
     for link in event.member_links:
         wu = link.workspace_user
         member_data = WorkspaceUserResponse.model_validate(wu).model_dump()
-        member_data["event_status"] = link.status  # pending / accepted / declined
+        member_data["event_status"] = getattr(link, 'status', 'pending')
         member_data["accepted_by_name"] = None
-        if link.accepted_by:
-            member_data["accepted_by_name"] = (
-                link.accepted_by.display_name
-                or (link.accepted_by.user.name if hasattr(link.accepted_by, 'user') and link.accepted_by.user else None)
-                or "Someone"
-            )
+        try:
+            if hasattr(link, 'accepted_by') and link.accepted_by:
+                member_data["accepted_by_name"] = (
+                    link.accepted_by.display_name
+                    or (link.accepted_by.user.name if hasattr(link.accepted_by, 'user') and link.accepted_by.user else None)
+                    or "Someone"
+                )
+        except Exception:
+            pass
         members.append(member_data)
     data = EventWithMembers.model_validate(event).model_dump()
     data["members"] = members
@@ -133,7 +139,7 @@ async def _load_event_with_members(event_id: uuid.UUID, db: AsyncSession) -> Eve
     result = await db.execute(
         select(Event)
         .options(
-            selectinload(Event.member_links).selectinload(EventMember.workspace_user).selectinload(WorkspaceUser.user), selectinload(Event.member_links).selectinload(EventMember.accepted_by)
+            selectinload(Event.member_links).selectinload(EventMember.workspace_user).selectinload(WorkspaceUser.user)
         )
         .where(Event.id == event_id)
     )
@@ -162,7 +168,7 @@ async def list_events(
     query = (
         select(Event)
         .options(
-            selectinload(Event.member_links).selectinload(EventMember.workspace_user).selectinload(WorkspaceUser.user), selectinload(Event.member_links).selectinload(EventMember.accepted_by)
+            selectinload(Event.member_links).selectinload(EventMember.workspace_user).selectinload(WorkspaceUser.user)
         )
         .where(Event.workspace_id == workspace.id)
     )
@@ -197,7 +203,7 @@ async def get_event(
     result = await db.execute(
         select(Event)
         .options(
-            selectinload(Event.member_links).selectinload(EventMember.workspace_user).selectinload(WorkspaceUser.user), selectinload(Event.member_links).selectinload(EventMember.accepted_by)
+            selectinload(Event.member_links).selectinload(EventMember.workspace_user).selectinload(WorkspaceUser.user)
         )
         .where(Event.id == event_id, Event.workspace_id == workspace.id)
     )
@@ -306,13 +312,7 @@ async def delete_event(
 def _build_event_with_members(event: Event) -> dict:
     """Build a dict compatible with EventWithMembers from an ORM Event
     with member_links eagerly loaded."""
-    members = []
-    for link in event.member_links:
-        members.append(WorkspaceUserResponse.model_validate(link.workspace_user))
-
-    resp = EventWithMembers.model_validate(event)
-    resp.members = members
-    return resp
+    return event_to_response(event)
 
 
 @router.put("/{event_id}/respond/", response_model=EventWithMembers)

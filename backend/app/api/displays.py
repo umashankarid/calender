@@ -206,9 +206,7 @@ async def get_today_by_token(
         .options(
             selectinload(Event.member_links)
             .selectinload(EventMember.workspace_user)
-            .selectinload(WorkspaceUser.user),
-            selectinload(Event.member_links)
-            .selectinload(EventMember.accepted_by)
+            .selectinload(WorkspaceUser.user)
         )
         .where(
             Event.workspace_id == workspace.id,
@@ -362,17 +360,19 @@ async def get_today_by_token(
                         "display_color": link.workspace_user.display_color,
                         "created_at": link.workspace_user.created_at.isoformat()
                             if link.workspace_user.created_at else None,
-                        "event_status": link.status,
+                        "event_status": getattr(link, 'status', 'pending'),
                         "accepted_by_name": (
-                            link.accepted_by.display_name
-                            or (link.accepted_by.user.name if hasattr(link.accepted_by, 'user') and link.accepted_by.user else None)
-                        ) if link.accepted_by else None,
+                            getattr(link, 'accepted_by', None) and (
+                                link.accepted_by.display_name
+                                or (link.accepted_by.user.name if hasattr(link.accepted_by, 'user') and link.accepted_by.user else None)
+                            )
+                        ) if hasattr(link, 'accepted_by') and link.accepted_by else None,
                     }
                     for link in e.member_links
                 ],
                 "acceptance_status": (
-                    "accepted" if any(link.status == "accepted" for link in e.member_links)
-                    else "declined" if any(link.status == "declined" for link in e.member_links)
+                    "accepted" if any(getattr(link, 'status', 'pending') == "accepted" for link in e.member_links)
+                    else "declined" if any(getattr(link, 'status', 'pending') == "declined" for link in e.member_links)
                     else "pending" if e.member_links
                     else "no_members"
                 ),

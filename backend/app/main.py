@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -8,6 +9,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import api_router
 from app.core import settings
 from app.core.database import Base, engine
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger("calendar-hub")
 
 
 @asynccontextmanager
