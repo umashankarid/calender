@@ -28,7 +28,9 @@ async def lifespan(app: FastAPI):
     from app.auto_migrate import auto_migrate
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        await auto_migrate(conn)
+    
+    # Apply column/index additions (each in its own transaction)
+    await auto_migrate(engine)
 
     # Seed default admin + workspace on first run
     from app.seed import seed
