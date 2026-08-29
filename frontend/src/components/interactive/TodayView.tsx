@@ -33,16 +33,27 @@ function isToday(iso: string): boolean {
   );
 }
 
-function isFuture(iso: string): boolean {
+function isTomorrow(iso: string): boolean {
   const d = new Date(iso);
   const now = new Date();
-  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  return d >= todayEnd;
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  return (
+    d.getFullYear() === tomorrow.getFullYear() &&
+    d.getMonth() === tomorrow.getMonth() &&
+    d.getDate() === tomorrow.getDate()
+  );
 }
 
-function formatDateShort(iso: string): string {
+function dateKey(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function formatDateLabel(iso: string): string {
+  if (isToday(iso)) return 'Today';
+  if (isTomorrow(iso)) return 'Tomorrow';
   return new Date(iso).toLocaleDateString([], {
-    weekday: 'short',
+    weekday: 'long',
     month: 'short',
     day: 'numeric',
   });
@@ -59,7 +70,7 @@ function getMemberColor(
 }
 
 function getMemberName(members: WorkspaceUser[], event: EventWithMembers): string {
-  if (event.members.length === 0) return 'Unassigned';
+  if (event.members.length === 0) return '';
   return event.members
     .map((em) => {
       const wsm = members.find((m) => m.user_id === em.user_id);
@@ -77,7 +88,7 @@ export default function TodayView({
   onRefresh,
 }: TodayViewProps) {
   const { token } = useAuth();
-  const [filter, setFilter] = useState<string | null>(null); // null = everyone
+  const [filter, setFilter] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<EventWithMembers | null>(null);
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
 
@@ -94,50 +105,36 @@ export default function TodayView({
     }
   };
 
-  // Filter to today's events
-  const todayEvents = useMemo(() => {
-    return events
-      .filter((e) => isToday(e.start))
-      .sort(
-        (a, b) =>
-          new Date(a.start).getTime() - new Date(b.start).getTime(),
-      );
-  }, [events]);
+  // All events from today onwards, sorted by date, filtered by member
+  const allEvents = useMemo(() => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  // Next 10 upcoming events (after today)
-  const upcomingEvents = useMemo(() => {
-    let upcoming = events
-      .filter((e) => isFuture(e.start))
-      .sort(
-        (a, b) =>
-          new Date(a.start).getTime() - new Date(b.start).getTime(),
-      );
+    let filtered = events
+      .filter((e) => new Date(e.start) >= todayStart)
+      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+
     if (filter) {
-      upcoming = upcoming.filter((e) =>
+      filtered = filtered.filter((e) =>
         e.members.some((m) => m.user_id === filter),
       );
     }
-    return upcoming.slice(0, 10);
+
+    return filtered;
   }, [events, filter]);
 
-  // Apply member filter
-  const filteredEvents = useMemo(() => {
-    if (!filter) return todayEvents;
-    return todayEvents.filter((e) =>
-      e.members.some((m) => m.user_id === filter),
-    );
-  }, [todayEvents, filter]);
-
-  // Group by member for display
+  // Group by date
   const grouped = useMemo(() => {
-    const map = new Map<string, EventWithMembers[]>();
-    for (const event of filteredEvents) {
-      const key = getMemberName(members, event);
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(event);
+    const map = new Map<string, { label: string; events: EventWithMembers[] }>();
+    for (const event of allEvents) {
+      const key = dateKey(event.start);
+      if (!map.has(key)) {
+        map.set(key, { label: formatDateLabel(event.start), events: [] });
+      }
+      map.get(key)!.events.push(event);
     }
-    return Array.from(map.entries());
-  }, [filteredEvents, members]);
+    return Array.from(map.values());
+  }, [allEvents]);
 
   const today = new Date();
   const dateStr = today.toLocaleDateString([], {
@@ -155,7 +152,7 @@ export default function TodayView({
       <div className="px-4 py-2">
         <h2 className="text-lg font-bold text-gray-900">{dateStr}</h2>
         <p className="text-sm text-gray-500">
-          {todayEvents.length} event{todayEvents.length !== 1 ? 's' : ''} today
+          {allEvents.length} upcoming event{allEvents.length !== 1 ? 's' : ''}
         </p>
       </div>
 
@@ -198,32 +195,41 @@ export default function TodayView({
         ))}
       </div>
 
-      {/* Events list */}
+      {/* Events list — grouped by date */}
       <div className="flex-1 overflow-y-auto px-4 pb-4">
-        {filteredEvents.length === 0 ? (
+        {allEvents.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="text-6xl mb-4" role="img" aria-hidden="true">
-              🌤️
-            </div>
-            <p className="text-lg font-medium text-gray-700">
-              No events today
-            </p>
-            <p className="text-sm text-gray-400 mt-1">
-              Enjoy your free time or add something new
-            </p>
+            <div className="text-5xl mb-3" role="img" aria-hidden="true">📅</div>
+            <p className="text-base font-medium text-gray-700">No upcoming events</p>
+            <p className="text-sm text-gray-400 mt-1">Tap + to add one</p>
           </div>
         ) : (
-          <div className="space-y-6">
-            {grouped.map(([memberName, memberEvents]) => (
-              <div key={memberName}>
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                  {memberName}
-                </h3>
+          <div className="space-y-5">
+            {grouped.map((group) => (
+              <div key={group.label}>
+                {/* Date header */}
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className={`text-xs font-bold uppercase tracking-wider ${
+                    group.label === 'Today' ? 'text-blue-600' : 'text-gray-400'
+                  }`}>
+                    {group.label}
+                  </h3>
+                  {group.label === 'Today' && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-600">
+                      {group.events.length}
+                    </span>
+                  )}
+                  <div className="flex-1 h-px bg-gray-100" />
+                </div>
+
+                {/* Event cards */}
                 <div className="space-y-2">
-                  {memberEvents.map((event) => {
+                  {group.events.map((event) => {
                     const color = getMemberColor(members, event);
                     const status = event.acceptance_status ?? 'no_members';
                     const acceptedBy = event.members.find(m => m.event_status === 'accepted')?.accepted_by_name;
+                    const memberName = getMemberName(members, event);
+
                     return (
                       <div key={event.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                         <button
@@ -261,7 +267,13 @@ export default function TodayView({
                             <p className="text-xs text-gray-500 mt-0.5">
                               {event.all_day
                                 ? 'All day'
-                                : `${formatTime(event.start)} – ${formatTime(event.end!)}`}
+                                : `${formatTime(event.start)}${event.end ? ` – ${formatTime(event.end)}` : ''}`}
+                              {memberName && (
+                                <>
+                                  <span className="text-gray-300"> · </span>
+                                  <span className="text-gray-400">{memberName}</span>
+                                </>
+                              )}
                             </p>
                             {event.location && (
                               <p className="text-xs text-gray-400 mt-0.5 truncate">
@@ -303,66 +315,6 @@ export default function TodayView({
           </div>
         )}
       </div>
-
-      {/* Upcoming events */}
-      {upcomingEvents.length > 0 && (
-        <div className="px-4 pb-4">
-          <div className="border-t border-gray-200 pt-4 mt-2">
-            <h2 className="text-sm font-bold text-gray-900 mb-1">📅 Upcoming</h2>
-            <p className="text-xs text-gray-400 mb-3">
-              Next {upcomingEvents.length} event{upcomingEvents.length !== 1 ? 's' : ''}
-            </p>
-            <div className="space-y-2">
-              {upcomingEvents.map((event) => {
-                const color = getMemberColor(members, event);
-                return (
-                  <button
-                    key={event.id}
-                    onClick={() => setSelectedEvent(event)}
-                    className="w-full flex items-stretch bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden text-left hover:shadow-md active:bg-gray-50 transition-all min-h-[56px]"
-                  >
-                    <div
-                      className="w-1.5 flex-shrink-0"
-                      style={{ backgroundColor: color }}
-                    />
-                    <div className="flex-1 px-3 py-2 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-gray-900 truncate">
-                          {event.title}
-                        </p>
-                        <span className="text-[11px] text-gray-400 flex-shrink-0">
-                          {formatDateShort(event.start)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {event.all_day
-                          ? 'All day'
-                          : formatTime(event.start)}
-                        {event.members.length > 0 && (
-                          <span className="text-gray-300"> · </span>
-                        )}
-                        <span className="text-gray-400">
-                          {getMemberName(members, event)}
-                        </span>
-                      </p>
-                      {event.location && (
-                        <p className="text-xs text-gray-400 mt-0.5 truncate">
-                          📍 {event.location}
-                        </p>
-                      )}
-                      {event.notes && (
-                        <p className="text-xs text-gray-400 mt-0.5 truncate">
-                          📝 {event.notes}
-                        </p>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Event detail modal */}
       {selectedEvent && (
