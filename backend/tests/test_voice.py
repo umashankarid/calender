@@ -105,7 +105,7 @@ async def test_create_reminder_intent(client, create_test_user, create_test_work
 
 
 async def test_unknown_intent(client, create_test_user, create_test_workspace):
-    """Random text that doesn't clearly match a pattern falls back to query_events."""
+    """Random text that doesn't clearly match a pattern falls back to create_event."""
     user, headers = await create_test_user()
     workspace = await create_test_workspace(user.id)
 
@@ -116,8 +116,8 @@ async def test_unknown_intent(client, create_test_user, create_test_workspace):
     )
     assert resp.status_code == 200
     body = resp.json()
-    # The interpret_text function falls back to query_events for unrecognised text
-    assert body["intent"] == "query_events"
+    # Unrecognised text now falls back to create_event (useful for shared SMS)
+    assert body["intent"] == "create_event"
 
 
 async def test_voice_requires_auth(client, create_test_user, create_test_workspace):
