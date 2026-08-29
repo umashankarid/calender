@@ -16,8 +16,14 @@ async def lifespan(app: FastAPI):
     # Import all models so Base.metadata knows about them
     import app.models  # noqa: F401
 
+    # Create new tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Apply column/index additions to existing tables
+    from app.auto_migrate import auto_migrate
+    async with engine.begin() as conn:
+        await auto_migrate(conn)
 
     # Seed default admin + workspace on first run
     from app.seed import seed
