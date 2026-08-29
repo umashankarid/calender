@@ -31,6 +31,21 @@ function isToday(iso: string): boolean {
   );
 }
 
+function isFuture(iso: string): boolean {
+  const d = new Date(iso);
+  const now = new Date();
+  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  return d >= todayEnd;
+}
+
+function formatDateShort(iso: string): string {
+  return new Date(iso).toLocaleDateString([], {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
 function getMemberColor(
   members: WorkspaceUser[],
   event: EventWithMembers,
@@ -71,6 +86,22 @@ export default function TodayView({
           new Date(a.start).getTime() - new Date(b.start).getTime(),
       );
   }, [events]);
+
+  // Next 10 upcoming events (after today)
+  const upcomingEvents = useMemo(() => {
+    let upcoming = events
+      .filter((e) => isFuture(e.start))
+      .sort(
+        (a, b) =>
+          new Date(a.start).getTime() - new Date(b.start).getTime(),
+      );
+    if (filter) {
+      upcoming = upcoming.filter((e) =>
+        e.members.some((m) => m.user_id === filter),
+      );
+    }
+    return upcoming.slice(0, 10);
+  }, [events, filter]);
 
   // Apply member filter
   const filteredEvents = useMemo(() => {
@@ -210,6 +241,61 @@ export default function TodayView({
           </div>
         )}
       </div>
+
+      {/* Upcoming events */}
+      {upcomingEvents.length > 0 && (
+        <div className="px-4 pb-4">
+          <div className="border-t border-gray-200 pt-4 mt-2">
+            <h2 className="text-sm font-bold text-gray-900 mb-1">📅 Upcoming</h2>
+            <p className="text-xs text-gray-400 mb-3">
+              Next {upcomingEvents.length} event{upcomingEvents.length !== 1 ? 's' : ''}
+            </p>
+            <div className="space-y-2">
+              {upcomingEvents.map((event) => {
+                const color = getMemberColor(members, event);
+                return (
+                  <button
+                    key={event.id}
+                    onClick={() => setSelectedEvent(event)}
+                    className="w-full flex items-stretch bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden text-left hover:shadow-md active:bg-gray-50 transition-all min-h-[56px]"
+                  >
+                    <div
+                      className="w-1.5 flex-shrink-0"
+                      style={{ backgroundColor: color }}
+                    />
+                    <div className="flex-1 px-3 py-2 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          {event.title}
+                        </p>
+                        <span className="text-[11px] text-gray-400 flex-shrink-0">
+                          {formatDateShort(event.start)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {event.all_day
+                          ? 'All day'
+                          : formatTime(event.start)}
+                        {event.members.length > 0 && (
+                          <span className="text-gray-300"> · </span>
+                        )}
+                        <span className="text-gray-400">
+                          {getMemberName(members, event)}
+                        </span>
+                      </p>
+                      {event.location && (
+                        <p className="text-xs text-gray-400 mt-0.5 truncate">
+                          📍 {event.location}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Event detail modal */}
       {selectedEvent && (
