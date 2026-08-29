@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react';
 import type { EventWithMembers, WorkspaceUser } from '../../types';
+import { respondToEvent } from '../../api/events';
+import { useAuth } from '../../hooks/useAuth';
 import QuickAdd from './QuickAdd';
 import EventDetailModal from './EventDetailModal';
 
@@ -74,8 +76,23 @@ export default function TodayView({
   members,
   onRefresh,
 }: TodayViewProps) {
+  const { token } = useAuth();
   const [filter, setFilter] = useState<string | null>(null); // null = everyone
   const [selectedEvent, setSelectedEvent] = useState<EventWithMembers | null>(null);
+  const [respondingTo, setRespondingTo] = useState<string | null>(null);
+
+  const handleRespond = async (eventId: string, response: 'accepted' | 'declined') => {
+    if (!token || !slug) return;
+    setRespondingTo(eventId);
+    try {
+      await respondToEvent(slug, eventId, response, token);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to respond to event', err);
+    } finally {
+      setRespondingTo(null);
+    }
+  };
 
   // Filter to today's events
   const todayEvents = useMemo(() => {
@@ -205,34 +222,74 @@ export default function TodayView({
                 <div className="space-y-2">
                   {memberEvents.map((event) => {
                     const color = getMemberColor(members, event);
+                    const status = event.acceptance_status ?? 'no_members';
+                    const acceptedBy = event.members.find(m => m.event_status === 'accepted')?.accepted_by_name;
                     return (
-                      <button
-                        key={event.id}
-                        onClick={() => setSelectedEvent(event)}
-                        className="w-full flex items-stretch bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden text-left hover:shadow-md active:bg-gray-50 transition-all min-h-[64px]"
-                      >
-                        {/* Color bar */}
-                        <div
-                          className="w-1.5 flex-shrink-0"
-                          style={{ backgroundColor: color }}
-                        />
-                        {/* Content */}
-                        <div className="flex-1 px-3 py-2.5 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 truncate">
-                            {event.title}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {event.all_day
-                              ? 'All day'
-                              : `${formatTime(event.start)} – ${formatTime(event.end!)}`}
-                          </p>
-                          {event.location && (
-                            <p className="text-xs text-gray-400 mt-0.5 truncate">
-                              📍 {event.location}
+                      <div key={event.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <button
+                          onClick={() => setSelectedEvent(event)}
+                          className="w-full flex items-stretch text-left hover:shadow-md active:bg-gray-50 transition-all min-h-[64px]"
+                        >
+                          {/* Color bar */}
+                          <div
+                            className="w-1.5 flex-shrink-0"
+                            style={{ backgroundColor: color }}
+                          />
+                          {/* Content */}
+                          <div className="flex-1 px-3 py-2.5 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-semibold text-gray-900 truncate flex-1">
+                                {event.title}
+                              </p>
+                              {/* Status badge */}
+                              {status === 'accepted' && (
+                                <span className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                                  ✓ {acceptedBy ?? 'Accepted'}
+                                </span>
+                              )}
+                              {status === 'declined' && (
+                                <span className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+                                  ✗ Declined
+                                </span>
+                              )}
+                              {status === 'pending' && (
+                                <span className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                                  ⏳ Pending
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {event.all_day
+                                ? 'All day'
+                                : `${formatTime(event.start)} – ${formatTime(event.end!)}`}
                             </p>
-                          )}
-                        </div>
-                      </button>
+                            {event.location && (
+                              <p className="text-xs text-gray-400 mt-0.5 truncate">
+                                📍 {event.location}
+                              </p>
+                            )}
+                          </div>
+                        </button>
+                        {/* Accept/Decline buttons */}
+                        {status === 'pending' && (
+                          <div className="flex border-t border-gray-100">
+                            <button
+                              onClick={() => handleRespond(event.id, 'accepted')}
+                              disabled={respondingTo === event.id}
+                              className="flex-1 py-2.5 text-xs font-semibold text-green-700 bg-green-50 hover:bg-green-100 active:bg-green-200 transition-colors min-h-[40px] disabled:opacity-50"
+                            >
+                              ✓ Accept
+                            </button>
+                            <button
+                              onClick={() => handleRespond(event.id, 'declined')}
+                              disabled={respondingTo === event.id}
+                              className="flex-1 py-2.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 active:bg-red-200 transition-colors border-l border-gray-100 min-h-[40px] disabled:opacity-50"
+                            >
+                              ✗ Decline
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

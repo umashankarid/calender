@@ -37,6 +37,8 @@ export interface WorkspaceUser {
   display_color: string;
   created_at: string;
   user?: User;
+  event_status?: 'pending' | 'accepted' | 'declined';
+  accepted_by_name?: string | null;
 }
 
 // ── Calendar ─────────────────────────────────────────────────────────────────
@@ -71,6 +73,7 @@ export interface CalendarEvent {
 
 export interface EventWithMembers extends CalendarEvent {
   members: WorkspaceUser[];
+  acceptance_status?: 'pending' | 'accepted' | 'declined' | 'no_members';
 }
 
 // ── Reminder ─────────────────────────────────────────────────────────────────

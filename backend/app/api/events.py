@@ -70,11 +70,27 @@ def event_to_response(event: Event) -> dict:
     members = []
     for link in event.member_links:
         wu = link.workspace_user
-        members.append(
-            WorkspaceUserResponse.model_validate(wu)
-        )
+        member_data = WorkspaceUserResponse.model_validate(wu).model_dump()
+        member_data["event_status"] = link.status  # pending / accepted / declined
+        member_data["accepted_by_name"] = None
+        if link.accepted_by:
+            member_data["accepted_by_name"] = (
+                link.accepted_by.display_name
+                or (link.accepted_by.user.name if hasattr(link.accepted_by, 'user') and link.accepted_by.user else None)
+                or "Someone"
+            )
+        members.append(member_data)
     data = EventWithMembers.model_validate(event).model_dump()
-    data["members"] = [m.model_dump() for m in members]
+    data["members"] = members
+    # Overall event acceptance status
+    if not members:
+        data["acceptance_status"] = "no_members"
+    elif any(m["event_status"] == "accepted" for m in members):
+        data["acceptance_status"] = "accepted"
+    elif any(m["event_status"] == "declined" for m in members):
+        data["acceptance_status"] = "declined"
+    else:
+        data["acceptance_status"] = "pending"
     return data
 
 
@@ -117,7 +133,7 @@ async def _load_event_with_members(event_id: uuid.UUID, db: AsyncSession) -> Eve
     result = await db.execute(
         select(Event)
         .options(
-            selectinload(Event.member_links).selectinload(EventMember.workspace_user).selectinload(WorkspaceUser.user)
+            selectinload(Event.member_links).selectinload(EventMember.workspace_user).selectinload(WorkspaceUser.user), selectinload(Event.member_links).selectinload(EventMember.accepted_by)
         )
         .where(Event.id == event_id)
     )
@@ -146,7 +162,7 @@ async def list_events(
     query = (
         select(Event)
         .options(
-            selectinload(Event.member_links).selectinload(EventMember.workspace_user).selectinload(WorkspaceUser.user)
+            selectinload(Event.member_links).selectinload(EventMember.workspace_user).selectinload(WorkspaceUser.user), selectinload(Event.member_links).selectinload(EventMember.accepted_by)
         )
         .where(Event.workspace_id == workspace.id)
     )
@@ -181,7 +197,7 @@ async def get_event(
     result = await db.execute(
         select(Event)
         .options(
-            selectinload(Event.member_links).selectinload(EventMember.workspace_user).selectinload(WorkspaceUser.user)
+            selectinload(Event.member_links).selectinload(EventMember.workspace_user).selectinload(WorkspaceUser.user), selectinload(Event.member_links).selectinload(EventMember.accepted_by)
         )
         .where(Event.id == event_id, Event.workspace_id == workspace.id)
     )
@@ -297,3 +313,59 @@ def _build_event_with_members(event: Event) -> dict:
     resp = EventWithMembers.model_validate(event)
     resp.members = members
     return resp
+
+
+@router.put("/{event_id}/respond/", response_model=EventWithMembers)
+async def respond_to_event(
+    slug: str,
+    event_id: uuid.UUID,
+    response: str = Query(..., description="accepted or declined"),
+    payload: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Accept or decline an event. Any workspace member can respond."""
+    workspace = await get_workspace(slug, db)
+    member = await get_workspace_member(workspace.id, payload["sub"], db)
+
+    if response not in ("accepted", "declined"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Response must be 'accepted' or 'declined'",
+        )
+
+    # Find the event
+    result = await db.execute(
+        select(Event)
+        .options(
+            selectinload(Event.member_links)
+            .selectinload(EventMember.workspace_user)
+            .selectinload(WorkspaceUser.user)
+        )
+        .where(Event.id == event_id, Event.workspace_id == workspace.id)
+    )
+    event = result.unique().scalar_one_or_none()
+    if event is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
+
+    # Update all member links for this event — the responder is accepting responsibility
+    for link in event.member_links:
+        link.status = response
+        if response == "accepted":
+            link.accepted_by_id = member.id
+        else:
+            link.accepted_by_id = None
+
+    await db.flush()
+
+    # Reload
+    result = await db.execute(
+        select(Event)
+        .options(
+            selectinload(Event.member_links)
+            .selectinload(EventMember.workspace_user)
+            .selectinload(WorkspaceUser.user)
+        )
+        .where(Event.id == event.id)
+    )
+    event = result.unique().scalar_one()
+    return event_to_response(event)

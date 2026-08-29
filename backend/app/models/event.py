@@ -22,10 +22,21 @@ class EventMember(Base):
     workspace_user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("workspace_users.id", ondelete="CASCADE"), primary_key=True
     )
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="pending"
+    )  # pending / accepted / declined
+    accepted_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("workspace_users.id", ondelete="SET NULL"), nullable=True
+    )
 
     # Relationships
     event: Mapped["Event"] = relationship(back_populates="member_links")
-    workspace_user: Mapped["WorkspaceUser"] = relationship()
+    workspace_user: Mapped["WorkspaceUser"] = relationship(
+        foreign_keys=[workspace_user_id]
+    )
+    accepted_by: Mapped["WorkspaceUser | None"] = relationship(
+        foreign_keys=[accepted_by_id]
+    )
 
 
 class Event(Base):

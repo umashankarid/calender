@@ -66,3 +66,16 @@ export async function deleteEvent(
 ): Promise<void> {
   return apiDelete(`/api/workspaces/${slug}/events/${eventId}`, token);
 }
+
+export async function respondToEvent(
+  slug: string,
+  eventId: string,
+  response: 'accepted' | 'declined',
+  token: string,
+): Promise<EventWithMembers> {
+  return apiPut<EventWithMembers>(
+    `/api/workspaces/${slug}/events/${eventId}/respond?response=${response}`,
+    {},
+    token,
+  );
+}
