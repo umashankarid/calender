@@ -47,6 +47,7 @@ export default function AddEventModal({
   const [repeat, setRepeat] = useState('none');
   const [reminder, setReminder] = useState('none');
   const [location, setLocation] = useState('');
+  const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,6 +59,7 @@ export default function AddEventModal({
       setStartTime(toTimeInputValue(editEvent.start));
       setEndTime(toTimeInputValue(editEvent.end ?? undefined));
       setLocation(editEvent.location ?? '');
+      setNotes(editEvent.notes ?? '');
       setRepeat(editEvent.recurrence ?? 'none');
     }
   }, [editEvent]);
@@ -87,7 +89,7 @@ export default function AddEventModal({
       location: location.trim() || null,
       all_day: false,
       recurrence: repeat === 'none' ? null : repeat,
-      notes: null,
+      notes: notes.trim() || null,
       member_ids: selectedMembers,
     };
 
@@ -243,6 +245,20 @@ export default function AddEventModal({
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Location (optional)"
               className="w-full min-h-[48px] px-4 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
+          {/* Details / Notes */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
+              Details
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Address, instructions, things to remember..."
+              rows={3}
+              className="w-full min-h-[80px] px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
             />
           </div>
 

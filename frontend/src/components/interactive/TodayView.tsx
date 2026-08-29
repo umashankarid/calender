@@ -268,6 +268,11 @@ export default function TodayView({
                                 📍 {event.location}
                               </p>
                             )}
+                            {event.notes && (
+                              <p className="text-xs text-gray-400 mt-0.5 truncate">
+                                📝 {event.notes}
+                              </p>
+                            )}
                           </div>
                         </button>
                         {/* Accept/Decline buttons */}
@@ -343,6 +348,11 @@ export default function TodayView({
                       {event.location && (
                         <p className="text-xs text-gray-400 mt-0.5 truncate">
                           📍 {event.location}
+                        </p>
+                      )}
+                      {event.notes && (
+                        <p className="text-xs text-gray-400 mt-0.5 truncate">
+                          📝 {event.notes}
                         </p>
                       )}
                     </div>
