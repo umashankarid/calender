@@ -163,15 +163,19 @@ async def test_create_event_all_day(client: AsyncClient, db: AsyncSession):
 
 
 async def test_create_event_with_recurrence(client: AsyncClient, db: AsyncSession):
-    """Create event with an RRULE recurrence string."""
+    """Create recurring weekly event with 3 occurrences."""
     _, ws, _, headers = await setup_workspace_with_user(db)
 
-    rrule = "FREQ=WEEKLY;BYDAY=MO,WE,FR"
-    payload = event_payload(title="Recurring", recurrence=rrule)
+    payload = event_payload(title="Recurring", recurrence="weekly", repeat_count=3)
     resp = await client.post(f"{BASE}/{ws.slug}/events/", json=payload, headers=headers)
 
     assert resp.status_code == 201
-    assert resp.json()["recurrence"] == rrule
+    assert resp.json()["recurrence"] == "weekly"
+
+    # Verify 3 events were created
+    list_resp = await client.get(f"{BASE}/{ws.slug}/events/", headers=headers)
+    recurring = [e for e in list_resp.json() if e["title"] == "Recurring"]
+    assert len(recurring) == 3
 
 
 async def test_list_events(client: AsyncClient, db: AsyncSession):
