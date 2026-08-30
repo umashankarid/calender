@@ -2,7 +2,7 @@
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -136,10 +136,10 @@ async def _set_event_members(
 
 def _generate_recurrence_dates(
     start: datetime,
-    recurrence: str | None,
-    repeat_count: int | None,
-    repeat_until: datetime | None,
-) -> list[datetime]:
+    recurrence: Optional[str],
+    repeat_count: Optional[int],
+    repeat_until: Optional[datetime],
+) -> list:
     """Generate a list of dates for recurring events.
     
     recurrence: 'daily', 'weekly', 'monthly', or None (single event)
@@ -154,7 +154,7 @@ def _generate_recurrence_dates(
     if repeat_until and not repeat_count:
         max_count = 365  # safety cap
 
-    dates: list[datetime] = []
+    dates = []
     current = start
 
     for _ in range(max_count):
@@ -278,18 +278,20 @@ async def create_event(
     check_role(member, "editor")
 
     # Calculate recurring dates
+    logger.info(f"Creating event '{data.title}' recurrence={data.recurrence} count={data.repeat_count} until={data.repeat_until}")
     dates = _generate_recurrence_dates(
         start=data.start,
         recurrence=data.recurrence,
         repeat_count=data.repeat_count,
         repeat_until=data.repeat_until,
     )
+    logger.info(f"Generated {len(dates)} occurrence(s)")
 
     # Calculate duration for end time
     duration = (data.end - data.start) if data.end else None
 
     first_event = None
-    for event_start in dates:
+    for i, event_start in enumerate(dates):
         event_end = (event_start + duration) if duration else None
 
         event = Event(
@@ -300,7 +302,7 @@ async def create_event(
             all_day=data.all_day,
             location=data.location,
             notes=data.notes,
-            recurrence=data.recurrence,
+            recurrence=data.recurrence if len(dates) > 1 else None,
             calendar_id=data.calendar_id,
         )
         db.add(event)
@@ -311,6 +313,8 @@ async def create_event(
 
         if first_event is None:
             first_event = event
+
+    logger.info(f"Created {len(dates)} event(s) for '{data.title}'")
 
     if first_event is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No events created")
