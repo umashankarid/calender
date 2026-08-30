@@ -45,6 +45,9 @@ export default function AddEventModal({
   const [endTime, setEndTime] = useState('10:00');
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [repeat, setRepeat] = useState('none');
+  const [repeatEndType, setRepeatEndType] = useState<'never' | 'count' | 'until'>('never');
+  const [repeatCount, setRepeatCount] = useState('10');
+  const [repeatUntil, setRepeatUntil] = useState('');
   const [reminder, setReminder] = useState('none');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
@@ -89,6 +92,8 @@ export default function AddEventModal({
       location: location.trim() || null,
       all_day: false,
       recurrence: repeat === 'none' ? null : repeat,
+      repeat_count: repeat !== 'none' && repeatEndType === 'count' ? parseInt(repeatCount, 10) || null : null,
+      repeat_until: repeat !== 'none' && repeatEndType === 'until' && repeatUntil ? new Date(repeatUntil + 'T23:59:59').toISOString() : null,
       notes: notes.trim() || null,
       member_ids: selectedMembers,
     };
@@ -278,6 +283,74 @@ export default function AddEventModal({
               <option value="monthly">Monthly</option>
             </select>
           </div>
+
+          {/* Repeat end options — only shown when repeat is set */}
+          {repeat !== 'none' && (
+            <div className="space-y-3 pl-3 border-l-2 border-blue-200">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRepeatEndType('never')}
+                  className={`px-3 py-2 rounded-lg text-xs font-medium min-h-[36px] transition-colors ${
+                    repeatEndType === 'never'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  Forever
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRepeatEndType('count')}
+                  className={`px-3 py-2 rounded-lg text-xs font-medium min-h-[36px] transition-colors ${
+                    repeatEndType === 'count'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  # Times
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRepeatEndType('until')}
+                  className={`px-3 py-2 rounded-lg text-xs font-medium min-h-[36px] transition-colors ${
+                    repeatEndType === 'until'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  Until date
+                </button>
+              </div>
+
+              {repeatEndType === 'count' && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Repeat</span>
+                  <input
+                    type="number"
+                    value={repeatCount}
+                    onChange={(e) => setRepeatCount(e.target.value)}
+                    min={2}
+                    max={100}
+                    className="w-20 min-h-[40px] px-3 rounded-lg bg-gray-50 border border-gray-200 text-gray-900 text-center focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                  <span className="text-xs text-gray-500">times</span>
+                </div>
+              )}
+
+              {repeatEndType === 'until' && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Until</span>
+                  <input
+                    type="date"
+                    value={repeatUntil}
+                    onChange={(e) => setRepeatUntil(e.target.value)}
+                    className="flex-1 min-h-[40px] px-3 rounded-lg bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Reminder */}
           <div>

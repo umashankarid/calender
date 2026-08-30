@@ -14,7 +14,9 @@ class EventCreate(BaseModel):
     all_day: bool = False
     location: Optional[str] = None
     notes: Optional[str] = None
-    recurrence: Optional[str] = None
+    recurrence: Optional[str] = None  # "daily", "weekly", "monthly"
+    repeat_count: Optional[int] = None  # e.g. 10 times
+    repeat_until: Optional[datetime] = None  # e.g. 2026-12-31
     calendar_id: Optional[UUID] = None
     member_ids: list[UUID] = Field(default_factory=list)
 

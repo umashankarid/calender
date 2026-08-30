@@ -134,6 +134,52 @@ async def _set_event_members(
         await db.flush()
 
 
+def _generate_recurrence_dates(
+    start: datetime,
+    recurrence: str | None,
+    repeat_count: int | None,
+    repeat_until: datetime | None,
+) -> list[datetime]:
+    """Generate a list of dates for recurring events.
+    
+    recurrence: 'daily', 'weekly', 'monthly', or None (single event)
+    repeat_count: number of occurrences (e.g. 10)
+    repeat_until: end date (e.g. 2026-12-31)
+    Default: 52 occurrences if recurrence is set but no count/until.
+    """
+    if not recurrence or recurrence == "none":
+        return [start]
+
+    max_count = repeat_count or 52
+    if repeat_until and not repeat_count:
+        max_count = 365  # safety cap
+
+    dates: list[datetime] = []
+    current = start
+
+    for _ in range(max_count):
+        if repeat_until and current > repeat_until:
+            break
+        dates.append(current)
+
+        if recurrence == "daily":
+            current = current + timedelta(days=1)
+        elif recurrence == "weekly":
+            current = current + timedelta(weeks=1)
+        elif recurrence == "monthly":
+            month = current.month + 1
+            year = current.year
+            if month > 12:
+                month = 1
+                year += 1
+            day = min(current.day, 28)
+            current = current.replace(year=year, month=month, day=day)
+        else:
+            break
+
+    return dates
+
+
 async def _load_event_with_members(event_id: uuid.UUID, db: AsyncSession) -> Event:
     """Reload an event with member_links -> workspace_user -> user eagerly loaded."""
     result = await db.execute(
@@ -221,29 +267,55 @@ async def create_event(
     payload: dict = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
-    """Create an event with optional member_ids (editor+ only)."""
+    """Create an event with optional member_ids (editor+ only).
+    
+    If recurrence is set (daily/weekly/monthly), generates multiple event instances.
+    Use repeat_count (e.g. 10) or repeat_until (end date) to control how many.
+    Default: 12 occurrences if neither is specified.
+    """
     workspace = await get_workspace(slug, db)
     member = await get_workspace_member(workspace.id, payload["sub"], db)
     check_role(member, "editor")
 
-    event = Event(
-        workspace_id=workspace.id,
-        title=data.title,
+    # Calculate recurring dates
+    dates = _generate_recurrence_dates(
         start=data.start,
-        end=data.end,
-        all_day=data.all_day,
-        location=data.location,
-        notes=data.notes,
         recurrence=data.recurrence,
-        calendar_id=data.calendar_id,
+        repeat_count=data.repeat_count,
+        repeat_until=data.repeat_until,
     )
-    db.add(event)
-    await db.flush()
 
-    if data.member_ids:
-        await _set_event_members(event, data.member_ids, workspace.id, db)
+    # Calculate duration for end time
+    duration = (data.end - data.start) if data.end else None
 
-    loaded = await _load_event_with_members(event.id, db)
+    first_event = None
+    for event_start in dates:
+        event_end = (event_start + duration) if duration else None
+
+        event = Event(
+            workspace_id=workspace.id,
+            title=data.title,
+            start=event_start,
+            end=event_end,
+            all_day=data.all_day,
+            location=data.location,
+            notes=data.notes,
+            recurrence=data.recurrence,
+            calendar_id=data.calendar_id,
+        )
+        db.add(event)
+        await db.flush()
+
+        if data.member_ids:
+            await _set_event_members(event, data.member_ids, workspace.id, db)
+
+        if first_event is None:
+            first_event = event
+
+    if first_event is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No events created")
+
+    loaded = await _load_event_with_members(first_event.id, db)
     return _build_event_with_members(loaded)
 
 
